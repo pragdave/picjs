@@ -8,3 +8,4 @@ npm-access
 .vite/
 .worktrees/
 .claude/settings.local.json
+test-results/
