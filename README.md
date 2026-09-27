@@ -94,14 +94,14 @@ lines. There is a [walk-through of how it works](./docs/hanoi-breakdown.md).
 ## Installing
 
 ```console
-$ npm install picjs
+$ npm install @strike48/picjs
 ```
 
 In a page:
 
 ```html
 <script type="module">
-  import { renderAll } from 'picjs'
+  import { renderAll } from '@strike48/picjs'
   renderAll('.picjs')          // renders every element with class "picjs"
 </script>
 <div class="picjs">box "Hello"</div>
@@ -110,7 +110,7 @@ In a page:
 On a server:
 
 ```typescript
-import { renderToStringAsync } from 'picjs'
+import { renderToStringAsync } from '@strike48/picjs'
 const { svg, width, height } = await renderToStringAsync('box "Hello"')
 ```
 

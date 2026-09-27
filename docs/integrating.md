@@ -10,7 +10,7 @@ eleventyNavigation:
 ## Installing
 
 ```console
-$ npm install picjs
+$ npm install @strike48/picjs
 ```
 
 You do not need to install anything to try the language — the
