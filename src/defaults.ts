@@ -214,6 +214,47 @@ interface ConvertedValue {
   slot?: string
 }
 
+/**
+ * Apply the tail of a theme expression (eg `*4.5` in `=FS*4.5`) to a base
+ * value: zero or more `<op><number>` terms, op one of + - * /, evaluated left
+ * to right. Deliberately not `Function`/`eval`, so picjs loads under a
+ * Content-Security-Policy without 'unsafe-eval'.
+ */
+export function applyArithmetic(base: number, tail: string): number {
+  const term = /\s*([-+*/])\s*(\d+(?:\.\d+)?|\.\d+)\s*/y
+  let result = base
+  let pos = 0
+  if (tail.trim() === ``)
+    return result
+  while (pos < tail.length) {
+    term.lastIndex = pos
+    const m = term.exec(tail)
+    if (!m)
+      throw new Error(`Invalid theme expression "${tail}": expected <op><number> at "${tail.slice(pos)}"`)
+    const operand = Number.parseFloat(m[2])
+    switch (m[1]) {
+      case `+`: result += operand; break
+      case `-`: result -= operand; break
+      case `*`: result *= operand; break
+      case `/`: result /= operand; break
+    }
+    pos = term.lastIndex
+  }
+  return result
+}
+
+/**
+ * Evaluate a theme expression given the theme variable's value and the tail
+ * after its name, keeping any unit suffix on the base (`2em` with `*3` is `6em`).
+ */
+export function evaluateThemeExpression(baseValue: string | number, tail: string): string {
+  const valueParts = baseValue.toString().match(/^(-?\d+(\.\d+)?)(.*)/)
+  if (!valueParts)
+    throw new Error(`can't find a number in ${baseValue}`)
+  const valueNumber = Number.parseFloat(valueParts[1])
+  return `${applyArithmetic(valueNumber, tail)}${valueParts[3] || ``}`
+}
+
 function convertValue(value: string): ConvertedValue {
   const firstChar = value[0]
   if (firstChar === `=`) {  // assume always ThemeVariable (rest of expression)
@@ -222,13 +263,7 @@ function convertValue(value: string): ConvertedValue {
       throw new Error(`Invalid theme specification value: "${value}"`)
 
     // look up value of first part of expression
-    const baseValue = Theme[match[1]]
-    const valueParts = baseValue.toString().match(/^(-?\d+(\.\d+)?)(.*)/)
-    if (!valueParts)
-      throw new Error(`can't find a number in ${baseValue}`)
-    const valueNumber = Number.parseFloat(valueParts[1])
-    const evaluator = Function(`return ${valueNumber}${match[2]}`)
-    return { value: `${evaluator()}${valueParts[3] || ``}` }
+    return { value: evaluateThemeExpression(Theme[match[1]], match[2]) }
   }
   else if (firstChar >= `A` && firstChar <= `Z`) {  // just ASCII for now
     const result = Theme[value]
