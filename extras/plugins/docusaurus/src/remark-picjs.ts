@@ -2,11 +2,11 @@ import type { Transformer } from "unified";
 import type { Root, Code } from "mdast";
 
 // Dynamic import to avoid loading picjs at config parse time
-let picjs: { renderToString: typeof import("@strike48/picjs").renderToString; parse: typeof import("@strike48/picjs").parse } | null = null;
+let picjs: { renderToString: typeof import("picjs").renderToString; parse: typeof import("picjs").parse } | null = null;
 
 async function getPicjs() {
   if (!picjs) {
-    picjs = await import("@strike48/picjs");
+    picjs = await import("picjs");
   }
   return picjs;
 }

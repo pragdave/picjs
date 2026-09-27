@@ -1,4 +1,4 @@
-declare module "@strike48/picjs" {
+declare module "picjs" {
   export interface RenderOptions {
     ids?: {
       prefix?: string;

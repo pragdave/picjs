@@ -32,7 +32,7 @@
   },
   "peerDependencies": {
     "@docusaurus/core": "^3.0.0",
-    "@strike48/picjs": "file:../../.."
+    "picjs": "file:../../.."
   },
   "dependencies": {
     "unist-util-visit": "^5.0.0"

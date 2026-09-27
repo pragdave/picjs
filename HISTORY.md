@@ -2,6 +2,7 @@
 
 ## 0.2.12
 
+* The package is now published as `picjs` (previously `@strike48/picjs`); update your imports and `npm install picjs`
 * Fix picjs failing to load under a Content-Security-Policy without `'unsafe-eval'` (WebViews, browser extensions, Electron apps, CSP-locked sites): theme expressions such as `=FS*4.5` are now evaluated without `Function()`
 * Groups can paint a background and pad their contents: `Group fill ~b3 stroke ~f1 radius .1 pad .3 { ... }`; `pad (x, y)` sets each axis
 * `Group` can carry shape defaults (`Group.fill = ~b3`); `padding`/`pad` can be set as a default
