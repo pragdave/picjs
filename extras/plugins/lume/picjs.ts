@@ -1,13 +1,13 @@
 /**
  * Lume plugin: render ```picjs code blocks to SVG at build time.
- * Uses @strike48/picjs (npm) for diagram rendering.
+ * Uses @pragdave/picjs (npm) for diagram rendering.
  * Supports meta options: example, stacked, width=X, svgwidth=X
  *
  * Operates as a preprocessor on raw markdown (before markdown rendering)
  * so that code fence meta strings are available for parsing.
  */
 import type { Site } from "lume/core/site.ts";
-import { picjs } from "npm:@strike48/picjs";
+import { picjs } from "npm:@pragdave/picjs";
 
 const picjsStyles = `
 .picjs-example {

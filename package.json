@@ -1,11 +1,11 @@
 {
-  "name": "@strike48/picjs",
+  "name": "@pragdave/picjs",
   "version": "0.2.12",
   "description": "A language for creating animated, constraint-based SVG diagrams",
   "main": "dist/picjs.js",
   "type": "module",
   "bin": {
-    "picjs": "./dist/cli.js"
+    "picjs": "dist/cli.js"
   },
   "files": [
     "dist/picjs.js",
@@ -51,7 +51,13 @@
     "test:e2e": "npx playwright test",
     "parser": "make src/peg_parser/jp.js"
   },
-  "repository": "https://github.com/pragdave/picjs",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pragdave/picjs.git"
+  },
   "author": "pragdave",
   "license": "MIT",
   "browserslist": [

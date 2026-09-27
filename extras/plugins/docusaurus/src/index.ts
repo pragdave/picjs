@@ -27,7 +27,7 @@ export default function pluginPicjs(
 
     injectHtmlTags() {
       const runtimeSrc =
-        runtimePath ?? "https://unpkg.com/@strike48/picjs/dist/runtime.js";
+        runtimePath ?? "https://unpkg.com/@pragdave/picjs/dist/runtime.js";
 
       return {
         headTags: [

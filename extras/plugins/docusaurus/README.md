@@ -5,7 +5,7 @@ Render [PIC.js](https://github.com/pragdave/picjs) diagrams in Docusaurus markdo
 ## Installation
 
 ```bash
-npm install docusaurus-plugin-picjs @strike48/picjs
+npm install docusaurus-plugin-picjs @pragdave/picjs
 ```
 
 ## Configuration
