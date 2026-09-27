@@ -1,6 +1,6 @@
 # docusaurus-plugin-picjs
 
-Render [PIC.js](https://github.com/pragdave-devo/picjs) diagrams in Docusaurus markdown at build time.
+Render [PIC.js](https://github.com/pragdave/picjs) diagrams in Docusaurus markdown at build time.
 
 ## Installation
 

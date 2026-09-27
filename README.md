@@ -10,8 +10,8 @@ Palette.current = "shuksan"
 box "Input" -> box "Process" fill ~b2 -> box "Output"
 ```
 
-Have a play in the [**playground**](https://pragdave-devo.github.io/picjs/editor/),
-or read the [**documentation**](https://pragdave-devo.github.io/picjs/).
+Have a play in the [**playground**](https://pragdave.github.io/picjs/editor/),
+or read the [**documentation**](https://pragdave.github.io/picjs/).
 
 ## Diagrams in your markdown
 
@@ -108,12 +108,12 @@ const { svg, width, height } = await renderToStringAsync('box "Hello"')
 
 ## Documentation
 
-* [Guide](https://pragdave-devo.github.io/picjs/guide/) — start here
-* [How layout works](https://pragdave-devo.github.io/picjs/layout/) — where things end up, and why
-* [The language](https://pragdave-devo.github.io/picjs/language/) — variables, functions, closures
-* [Animation](https://pragdave-devo.github.io/picjs/animation/)
-* [Reference](https://pragdave-devo.github.io/picjs/picjs-reference/) — every shape and option
-* [Playground](https://pragdave-devo.github.io/picjs/editor/) — nothing to install
+* [Guide](https://pragdave.github.io/picjs/guide/) — start here
+* [How layout works](https://pragdave.github.io/picjs/layout/) — where things end up, and why
+* [The language](https://pragdave.github.io/picjs/language/) — variables, functions, closures
+* [Animation](https://pragdave.github.io/picjs/animation/)
+* [Reference](https://pragdave.github.io/picjs/picjs-reference/) — every shape and option
+* [Playground](https://pragdave.github.io/picjs/editor/) — nothing to install
 
 The `skills/` directory has two skills files, should you want an AI to write
 picjs with you.

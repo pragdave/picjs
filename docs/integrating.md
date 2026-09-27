@@ -22,7 +22,7 @@ If you control the Markdown-to-HTML step for your site, add picjs as a plugin
 and ```` ```picjs ```` blocks are replaced by SVG in the output.
 
 Plugins for Lume and Eleventy live in the
-[extras/](https://github.com/pragdave-devo/picjs/tree/main/extras) directory.
+[extras/](https://github.com/pragdave/picjs/tree/main/extras) directory.
 Contributions of others are welcome.
 
 Diagrams without animation are self-contained: the generated HTML needs nothing
