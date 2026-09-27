@@ -7,6 +7,10 @@ on:
       - 'README.md'
   workflow_dispatch:
 
+# The job commits the rendered README back to main
+permissions:
+  contents: write
+
 jobs:
   render:
     runs-on: ubuntu-latest
