@@ -20,9 +20,17 @@ Write a diagram where it belongs — in the document that talks about it:
 ~~~markdown
 Here is how the parts fit together:
 
-```picjs
+
+<!-- picjs:9b843399:plain
 box "Input" -> box "Process" -> box "Output"
-```
+-->
+<svg viewBox="-0.7 -0.575 5.4 1.15" class="_myopic-1" xmlns="http://www.w3.org/2000/svg"><style>.pj-fill-sunset-b1{fill:#41476b}
+.pj-fill-sunset-f1{fill:#fbdfa2}
+.pj-stroke-sunset-b1{stroke:#41476b}
+[data-theme="light"] .pj-fill-sunset-b1{fill:#8b90b8}
+[data-theme="light"] .pj-fill-sunset-f1{fill:#1a1a2e}
+[data-theme="light"] .pj-stroke-sunset-b1{stroke:#8b90b8}</style><g data-jp-id="SBox-1"><rect width="1" height="0.75" stroke="none" stroke-width="0.015" rx="0.06" ry="0.06" x="-0.5" y="-0.375" class="pj-fill-sunset-b1" data-jp-id="SBox-1"></rect><text font-family="Roboto, sans-serif" font-size="0.14" font-style="normal" font-variant="normal" font-weight="normal" font-stretch="normal" x="-0.16100000000000003" y="-0.084" class="pj-fill-sunset-f1" dominant-baseline="text-before-edge" data-jp-id="SLabel-2">Input</text></g><g data-jp-id="SLine-3"><path stroke-width="0.04" x="1" y="0" d="M 0.5 0 L 1.284 0" fill="none" class="pj-stroke-sunset-b1"></path><path d="M 1.284 -0.06 L 1.44 0 L 1.284 0.06 Z" stroke="none" class="pj-fill-sunset-b1"></path></g><g data-jp-id="SBox-4"><rect width="1" height="0.75" stroke="none" stroke-width="0.015" rx="0.06" ry="0.06" x="1.5" y="-0.375" class="pj-fill-sunset-b1" data-jp-id="SBox-4"></rect><text font-family="Roboto, sans-serif" font-size="0.14" font-style="normal" font-variant="normal" font-weight="normal" font-stretch="normal" x="1.7746" y="-0.084" class="pj-fill-sunset-f1" dominant-baseline="text-before-edge" data-jp-id="SLabel-5">Process</text></g><g data-jp-id="SLine-6"><path stroke-width="0.04" x="3" y="0" d="M 2.5 0 L 3.284 0" fill="none" class="pj-stroke-sunset-b1"></path><path d="M 3.284 -0.06 L 3.44 0 L 3.284 0.06 Z" stroke="none" class="pj-fill-sunset-b1"></path></g><g data-jp-id="SBox-7"><rect width="1" height="0.75" stroke="none" stroke-width="0.015" rx="0.06" ry="0.06" x="3.5" y="-0.375" class="pj-fill-sunset-b1" data-jp-id="SBox-7"></rect><text font-family="Roboto, sans-serif" font-size="0.14" font-style="normal" font-variant="normal" font-weight="normal" font-stretch="normal" x="3.8068" y="-0.084" class="pj-fill-sunset-f1" dominant-baseline="text-before-edge" data-jp-id="SLabel-8">Output</text></g></svg>
+<!-- /picjs -->
 ~~~
 
 Then run picjs over the file:
