@@ -1,6 +1,6 @@
 import { MinPriorityQueue, PriorityQueueItem } from "@datastructures-js/priority-queue"
 import { AnimationRunner } from "./animation_runner.js"
-import { AnimatorBase, createAttributeAnimator } from "./animators/_base.js"
+import { AnimatorBase, MoveByAnimator, MoveToAnimator, createAttributeAnimator } from "./animators/_base.js"
 import { TNumber } from "./types.js"
 import { XY } from "./position.js"
 
@@ -24,6 +24,10 @@ export class Timeline {
   pauseRequested = false
   pauseMessage: string | null = null
   startFrom: number | null = null
+
+  // Per shape, how many timeline entries so far reposition it. A layout uses
+  // this to notice when something else has moved one of its shapes.
+  private positionChanges = new WeakMap<SBase, number>()
 
   constructor(public dispatcher: Dispatcher) {
     this.timeline = new MinPriorityQueue({ priority: (entry) => entry.key })
@@ -89,6 +93,9 @@ export class Timeline {
 
     this.lastAnimation = new TLE.Animation(animation, start)
     this.addToTimeline(this.lastAnimation)
+
+    if (animation instanceof MoveToAnimator || animation instanceof MoveByAnimator)
+      this.notePositionChange(animation.movedShape())
   }
 
   updateOtherGeometry(shape: SBase, attr: string, value: any) {
@@ -101,6 +108,15 @@ export class Timeline {
 
   setCardinalToPoint(shape: SBase, cardinal: string, pos: XY) {
     this.addToTimeline(new TLE.PositionShapeNoAnimation(shape, this.recordingTime, cardinal, pos))
+    this.notePositionChange(shape)
+  }
+
+  positionChangesFor(shape: SBase): number {
+    return this.positionChanges.get(shape) ?? 0
+  }
+
+  private notePositionChange(shape: SBase) {
+    this.positionChanges.set(shape, this.positionChangesFor(shape) + 1)
   }
 
   setAtTime(time: `now` | number) {

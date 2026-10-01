@@ -108,6 +108,10 @@ export class MoveToAnimator extends AnimatorBase {
       this.place = new TPosition(place)
   }
 
+  movedShape() {
+    return this.shape
+  }
+
   start() {
     const offset = this.shape.cardinalOffset(this.cardinal)
     const start = this.shape.getAnimatablePosition()
@@ -143,6 +147,10 @@ export class MoveByAnimator extends AnimatorBase {
     this.shape = shape
     this.dx = dx
     this.dy = dy
+  }
+
+  movedShape() {
+    return this.shape
   }
 
   start() {

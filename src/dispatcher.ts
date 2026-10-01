@@ -14,6 +14,19 @@ import { AnimatorBase } from "./animators/_base.js"
 import { AnimationRunner } from "./animation_runner.js"
 import * as TLE from "./timeline/tlentries.js"
 import * as AST from "./ast.js"
+
+export interface LayoutPlacement {
+  shape: SBase
+  cardinal: Cardinals
+  pos: XY
+}
+
+// When `intercept` is set, placements are recorded but not put on the timeline.
+export interface LayoutCapture {
+  intercept: boolean
+  placements: LayoutPlacement[]
+}
+
 export class Dispatcher {
 
   private interpreter: Interpreter
@@ -28,6 +41,10 @@ export class Dispatcher {
   currentEvaluatingShape: SBase | null = null
   asideDepth = 0
   isReEvaluating = false
+
+  // Set while a layout function runs, so the layout can see which shapes it
+  // positions. See TLayout.
+  layoutCapture: LayoutCapture | null = null
 
   constructor(
     private logger: LoggerInterface,
@@ -219,7 +236,18 @@ export class Dispatcher {
   // callbacks from shapes, because we have a timeline and they don't
 
   setCardinalToPoint(shape: SBase, cardinal: Cardinals, x: number, y: number) {
+    const capture = this.layoutCapture
+    if (capture) {
+      capture.placements.push({ shape, cardinal, pos: { x, y } })
+      if (capture.intercept) return
+    }
     this.timeline.setCardinalToPoint(shape, cardinal, { x, y })
+  }
+
+  // The number of times something other than an intercepted layout has
+  // positioned or moved `shape` so far in the recording.
+  positionChangesFor(shape: SBase): number {
+    return this.timeline.positionChangesFor(shape)
   }
 
   updateOtherGeometry(shape: SBase, attr_name: string, attr_value: any) {

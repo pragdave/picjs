@@ -14,6 +14,7 @@ export { TRange, Easing } from "./types/trange.js"
 export { TString } from "./types/tstring.js"
 export { TTimeline } from "./types/ttimeline.js"
 export { TPalette } from "./types/tpalette.js"
+export { TLayout } from "./types/tlayout.js"
 
 import { registerHasMethodFactory } from "./types/_base.js"
 import { TNative } from "./types/tnative.js"

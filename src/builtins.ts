@@ -1,6 +1,7 @@
 import { RTE } from "./runtime_error.js"
 import { TA, TNative, TNumber, TPosition } from "./types.js"
 import { TPalette } from "./types/tpalette.js"
+import { TLayout } from "./types/tlayout.js"
 
 const D2R = 2*Math.PI/360.0
 const R2D = 1 / D2R
@@ -32,6 +33,11 @@ export const BuiltinConstants: {[name: string]: TA} = {
 }
 
 export const BuiltinFunctions: {[name: string]: TNative} = {
+  //---------------------------------------------------------------------- layout
+  layout: new TNative(`layout`, [`fn`],
+    `position shapes with fn now, and animate them to fn's new positions on each .step()`,
+    (interpreter, fn) => new TLayout(interpreter, fn)),
+
   //---------------------------------------------------------------------- d2r
   d2r: new TNative(`d2r`, [`degrees`],
     `convert degrees to radians`,
