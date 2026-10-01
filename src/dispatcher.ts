@@ -262,6 +262,14 @@ export class Dispatcher {
     this.timeline.updateShapeStyle(shape, attr_name, attr_value)
   }
 
+  updateShapeStyleAt(time: number, shape: SBase, attr_name: string, attr_value: any) {
+    this.timeline.updateShapeStyleAt(time, shape, attr_name, attr_value)
+  }
+
+  creationTimeOf(shape: SBase): number {
+    return this.timeline.creationTimeOf(shape)
+  }
+
   ///////////////////////////////////////////////// geometry
 
   getLastShape(): SBase {

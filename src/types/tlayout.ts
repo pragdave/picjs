@@ -5,20 +5,35 @@
 // and its assignments take effect exactly as if they had been written inline.
 //
 // Each later `view.step()` runs the function again, but captures the position
-// assignments rather than applying them. Every shape whose position differs from
-// the last time the layout placed it is animated there with a `move`, all
-// starting at `@`. `@` then advances to the end of those moves.
+// assignments rather than applying them, and compares them with the last time
+// the layout ran:
 //
-// Setting `view.transition = (shape, from, to) => ...` replaces that default
-// move. It is called once per changed shape with `@` at the step's start, and
-// `from` and `to` are both positions of the cardinal point the layout set.
+// * a shape placed both times, but somewhere different, moves there
+// * a shape placed only this time enters: it appears in place and fades in
+// * a shape placed only last time exits: it fades out where it is
+//
+// All of these start at `@`, and `@` then advances to the end of the last one.
+// Shapes the layout has never placed are never touched.
+//
+// A shape first placed in a step is hidden from when the layout was declared
+// (or from its creation, if later) until it enters, so it doesn't flash up at
+// its default position.
+//
+// Each of these can be replaced by setting a function on the layout. They are
+// called once per shape, with `@` at the step's start:
+//
+//   view.transition = (shape, from, to) => ...   from, to: positions of the
+//                                                cardinal point the layout set
+//   view.enter = (shape, at) => ...              shape is already visible, at `at`
+//   view.exit = (shape, from) => ...
 
 import { AnimationStyle, TA, TBase } from "./_base.js"
 import { TFunction } from "./tfunction.js"
 import { TNative } from "./tnative.js"
+import { TNumber } from "./tnumber.js"
 import { TPosition } from "./tposition.js"
 import { RTE } from "../runtime_error.js"
-import { MoveToAnimator } from "../animators/_base.js"
+import { MoveToAnimator, createAttributeAnimator } from "../animators/_base.js"
 import type { Interpreter } from "../interpreter.js"
 import type { LayoutPlacement } from "../dispatcher.js"
 import type { SBase } from "../shapes.js"
@@ -29,48 +44,116 @@ interface Placed {
   positionChanges: number   // the shape's count when we last placed it
 }
 
+type Hook = TFunction | TNative
+
 export class TLayout extends TBase<TFunction> {
 
+  // The shapes placed the last time the layout ran
   private placed = new Map<SBase, Placed>()
+
+  // Every shape the layout has ever placed, with the opacity it had then
+  private managed = new Map<SBase, number>()
+
+  private declaredAt: number
 
   constructor(interpreter: Interpreter, fn: TA) {
     if (!(fn instanceof TFunction))
       throw new RTE(`layout needs a function that positions shapes, but was given ${fn?.toNative?.() ?? fn}`)
     super(fn, AnimationStyle.none)
 
+    this.declaredAt = interpreter.dispatcher.currentRecordingTime()
+
     this.attrs.step = new TNative(`step`, [],
       `rerun the layout and animate every shape whose position has changed`,
       (interpreter) => this.step(interpreter))
 
-    for (const p of this.run(interpreter, false))
+    for (const p of this.run(interpreter, false)) {
+      this.manage(p.shape)
       this.remember(interpreter, p)
+    }
   }
 
   step(interpreter: Interpreter) {
     const dispatcher = interpreter.dispatcher
     const start = dispatcher.currentRecordingTime()
-    const changed = this.run(interpreter, true).filter(p => !this.isUnchanged(interpreter, p))
-    const transition = this.transition()
 
-    // Each changed shape's animation starts at `start`, whatever the
-    // previous one did to `@`. The step ends when the last of them does.
+    const placements = this.run(interpreter, true)
+    const nowPlaced = new Set(placements.map(p => p.shape))
+    const exiting = [...this.placed.keys()].filter(shape => !nowPlaced.has(shape))
+    const hooks = {
+      transition: this.hook(`transition`, `(shape, from, to)`),
+      enter: this.hook(`enter`, `(shape, at)`),
+      exit: this.hook(`exit`, `(shape, from)`),
+    }
+
+    // Each shape's animation starts at `start`, whatever the previous one did
+    // to `@`. The step ends when the last of them does.
     const end = dispatcher.latestAnimationEndOf(start, () => {
-      for (const p of changed) {
+      for (const p of placements) {
         dispatcher.setRecordingTime(start)
-        const last = this.placed.get(p.shape)
-        if (transition && last) {
-          const from = this.positionAt(last.placement, p.cardinal)
-          interpreter.callFunction(transition, [p.shape, from, new TPosition(p.pos)])
-        }
-        else {
-          dispatcher.addAnimation(new MoveToAnimator(p.shape, p.cardinal, p.pos, this.animationParams()))
-        }
+        if (!this.placed.has(p.shape))
+          this.enter(interpreter, p, start, hooks.enter)
+        else if (!this.isUnchanged(interpreter, p))
+          this.transition(interpreter, p, hooks.transition)
+        else
+          continue
         this.remember(interpreter, p)
+      }
+
+      for (const shape of exiting) {
+        dispatcher.setRecordingTime(start)
+        this.exit(interpreter, shape, hooks.exit)
+        this.placed.delete(shape)
       }
     })
 
     dispatcher.setRecordingTime(end)
     return this
+  }
+
+  private transition(interpreter: Interpreter, p: LayoutPlacement, hook: Hook | null) {
+    if (hook) {
+      const from = this.positionAt(this.placed.get(p.shape)!.placement, p.cardinal)
+      interpreter.callFunction(hook, [p.shape, from, new TPosition(p.pos)])
+    }
+    else {
+      interpreter.dispatcher.addAnimation(new MoveToAnimator(p.shape, p.cardinal, p.pos, this.animationParams()))
+    }
+  }
+
+  private enter(interpreter: Interpreter, p: LayoutPlacement, start: number, hook: Hook | null) {
+    const dispatcher = interpreter.dispatcher
+    const shape = p.shape
+
+    if (!this.managed.has(shape)) {
+      this.manage(shape)
+      const hideFrom = Math.max(this.declaredAt, dispatcher.creationTimeOf(shape))
+      if (hideFrom < start)
+        dispatcher.updateShapeStyleAt(hideFrom, shape, `opacity`, new TNumber(0))
+    }
+
+    dispatcher.setCardinalToPoint(shape, p.cardinal, p.pos.x, p.pos.y)
+    const opacity = new TNumber(this.managed.get(shape)!)
+
+    if (hook) {
+      dispatcher.updateShapeStyleAt(start, shape, `opacity`, opacity)
+      interpreter.callFunction(hook, [shape, new TPosition(p.pos)])
+    }
+    else {
+      dispatcher.updateShapeStyleAt(start, shape, `opacity`, new TNumber(0))
+      dispatcher.addAnimation(createAttributeAnimator(shape, `opacity`, opacity, this.animationParams()))
+    }
+  }
+
+  private exit(interpreter: Interpreter, shape: SBase, hook: Hook | null) {
+    if (hook) {
+      const last = this.placed.get(shape)!.placement
+      interpreter.callFunction(hook, [shape, new TPosition(last.pos)])
+    }
+    else {
+      interpreter.dispatcher.addAnimation(
+        createAttributeAnimator(shape, `opacity`, new TNumber(0), this.animationParams()))
+    }
   }
 
   // Run the layout function, returning the last placement it made for each
@@ -92,6 +175,11 @@ export class TLayout extends TBase<TFunction> {
     for (const p of capture.placements)
       byShape.set(p.shape, p)
     return [...byShape.values()]
+  }
+
+  private manage(shape: SBase) {
+    if (!this.managed.has(shape))
+      this.managed.set(shape, shape.params.opacity ?? 1)
   }
 
   private remember(interpreter: Interpreter, placement: LayoutPlacement) {
@@ -116,11 +204,11 @@ export class TLayout extends TBase<TFunction> {
     return new TPosition({ x: placement.pos.x - from.x + to.x, y: placement.pos.y - from.y + to.y })
   }
 
-  private transition(): TFunction | TNative | null {
-    const transition = this.attrs.transition
-    if (transition === undefined) return null
-    if (transition instanceof TFunction || transition instanceof TNative) return transition
-    throw new RTE(`a layout's transition must be a function (shape, from, to), but it is ${transition.toNative()}`)
+  private hook(name: string, params: string): Hook | null {
+    const hook = this.attrs[name]
+    if (hook === undefined) return null
+    if (hook instanceof TFunction || hook instanceof TNative) return hook
+    throw new RTE(`a layout's ${name} must be a function ${params}, but it is ${hook.toNative()}`)
   }
 
   private animationParams() {

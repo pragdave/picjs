@@ -215,6 +215,147 @@ describe(`layout`, () => {
     })
   })
 
+  describe(`enter and exit`, () => {
+    // `shown` controls which of a and b the layout places
+    const TwoBoxes = `
+      a = Box
+      b = Box opacity 0.5
+      shown = [true, false]
+      view = layout(() => {
+        if (shown[0]) { a.c = (100, 0) }
+        if (shown[1]) { b.c = (200, 0) }
+      })
+    `
+    const opacityAt = (src: string, t: number, i: number) => {
+      const dispatcher = runProgram(src)
+      dispatcher.applyTimelineUpTo(t)
+      return (dispatcher.shapes()[i] as any).params.opacity ?? 1
+    }
+    const xAt = (src: string, t: number, i: number) => {
+      const dispatcher = runProgram(src)
+      dispatcher.applyTimelineUpTo(t)
+      return dispatcher.shapes()[i].x
+    }
+
+    it(`leaves shapes the layout has not placed alone when there is no step`, () => {
+      expect(opacityAt(TwoBoxes, 0, 1)).toBeCloseTo(0.5)
+      expect(animations(runProgram(TwoBoxes))).toEqual([])
+    })
+
+    describe(`a shape placed for the first time in a step`, () => {
+      const Enter = `${TwoBoxes}  @ = 1  shown = [true, true]  view.step()`
+
+      it(`is hidden until the step`, () => {
+        expect(opacityAt(Enter, 0, 1)).toBe(0)
+        expect(opacityAt(Enter, 0.9, 1)).toBe(0)
+      })
+
+      it(`is in place at the start of the step, and fades in to its own opacity`, () => {
+        expect(xAt(Enter, 1, 1)).toBeCloseTo(200)
+        expect(opacityAt(Enter, 1, 1)).toBe(0)
+        expect(opacityAt(Enter, 1.35, 1)).toBeGreaterThan(0)
+        expect(opacityAt(Enter, 1.35, 1)).toBeLessThan(0.5)
+        expect(opacityAt(Enter, 2, 1)).toBeCloseTo(0.5)
+      })
+
+      it(`advances @ past the fade`, () => {
+        expect(runProgram(Enter).currentRecordingTime()).toBeCloseTo(1.7)
+      })
+
+      it(`is not hidden before the layout was declared`, () => {
+        const src = `
+          a = Box
+          go = false
+          @ = 1
+          view = layout(() => { if (go) { a.c = (100, 0) } })
+          @ = 2
+          go = true
+          view.step()
+        `
+        expect(opacityAt(src, 0.5, 0)).toBe(1)
+        expect(opacityAt(src, 1.5, 0)).toBe(0)
+        expect(opacityAt(src, 3, 0)).toBe(1)
+      })
+    })
+
+    describe(`a shape the layout stops placing`, () => {
+      const Exit = `${TwoBoxes}  @ = 1  shown = [false, false]  view.step()`
+
+      it(`fades out where it is`, () => {
+        expect(opacityAt(Exit, 1, 0)).toBe(1)
+        expect(opacityAt(Exit, 2, 0)).toBe(0)
+        expect(xAt(Exit, 2, 0)).toBeCloseTo(100)
+        expect(runProgram(Exit).currentRecordingTime()).toBeCloseTo(1.7)
+      })
+
+      it(`fades back in at its new place if placed again`, () => {
+        const src = `${TwoBoxes}
+          a_x = 100
+          view2 = layout(() => { if (shown[0]) { a.c = (a_x, 0) } })
+          shown = [false, false]  view2.step()
+          shown = [true, false]  a_x = 300  view2.step()
+        `
+        expect(opacityAt(src, 0.5, 0)).toBeGreaterThan(0)    // fading out
+        expect(opacityAt(src, 0.7, 0)).toBe(0)
+        expect(xAt(src, 0.7, 0)).toBeCloseTo(300)            // jumped while invisible
+        expect(opacityAt(src, 1.4, 0)).toBeCloseTo(1)
+      })
+
+      it(`is not hidden before it entered`, () => {
+        expect(opacityAt(Exit, 0.5, 0)).toBe(1)
+      })
+    })
+
+    describe(`hooks`, () => {
+      it(`view.enter replaces the fade in, with the shape already visible and in place`, () => {
+        const src = `${TwoBoxes}
+          seen = []
+          view.enter = (shape, at) => {
+            seen.push(at)
+            move shape to at + (0, 50) take 2
+          }
+          @ = 1  shown = [true, true]  view.step()
+        `
+        expect(opacityAt(src, 0.5, 1)).toBe(0)
+        expect(opacityAt(src, 1, 1)).toBeCloseTo(0.5)
+        expect(xAt(src, 1, 1)).toBeCloseTo(200)
+        const dispatcher = runProgram(src)
+        expect(dispatcher.currentRecordingTime()).toBe(3)
+        const seen = dispatcher.getCurrentBinding().get_variable_value(`seen`).value
+        expect(seen.map((p: any) => [p.x, p.y])).toEqual([[200, 0]])
+      })
+
+      it(`view.exit replaces the fade out, and is given where the shape was`, () => {
+        const src = `${TwoBoxes}
+          seen = []
+          view.exit = (shape, from) => {
+            seen.push(from)
+            move shape to from + (0, 500) take 2
+          }
+          @ = 1  shown = [false, false]  view.step()
+        `
+        expect(opacityAt(src, 3, 0)).toBe(1)
+        const dispatcher = runProgram(src)
+        expect(dispatcher.currentRecordingTime()).toBe(3)
+        const seen = dispatcher.getCurrentBinding().get_variable_value(`seen`).value
+        expect(seen.map((p: any) => [p.x, p.y])).toEqual([[100, 0]])
+      })
+
+      it(`must be functions`, () => {
+        expect(() => runProgram(`${TwoBoxes}  view.enter = 1  shown = [true, true]  view.step()`))
+          .toThrow(/enter.*function/)
+        expect(() => runProgram(`${TwoBoxes}  view.exit = 1  shown = [false, false]  view.step()`))
+          .toThrow(/exit.*function/)
+      })
+    })
+
+    it(`never touches shapes the layout has never placed`, () => {
+      const src = `${TwoBoxes}  scenery = Box  @ = 1  shown = [false, false]  view.step()`
+      expect(opacityAt(src, 0, 2)).toBe(1)
+      expect(opacityAt(src, 3, 2)).toBe(1)
+    })
+  })
+
   describe(`errors`, () => {
     it(`requires a function`, () => {
       expect(() => runProgram(`layout(3)`)).toThrow(/layout.*function/)

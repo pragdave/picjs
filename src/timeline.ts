@@ -29,6 +29,8 @@ export class Timeline {
   // this to notice when something else has moved one of its shapes.
   private positionChanges = new WeakMap<SBase, number>()
 
+  private creationTimes = new WeakMap<SBase, number>()
+
   // While set, the latest end time of the animations added. See latestEndOf().
   private watermark: number | null = null
 
@@ -76,6 +78,7 @@ export class Timeline {
   //
   addShape(shape: SBase) {
     this.addToTimeline(new TLE.CreateShape(shape, this.recordingTime))
+    this.creationTimes.set(shape, this.recordingTime)
 
     const revealTime = shape.params.reveal_time
     if (revealTime && revealTime > 0 && this.recordingTime > 0) {
@@ -124,6 +127,15 @@ export class Timeline {
 
   updateShapeStyle(shape: SBase, attr: string, value: any) {
     this.addToTimeline(new TLE.UpdateShapeNoAnimation(shape, this.recordingTime, attr, value))
+  }
+
+  creationTimeOf(shape: SBase): number {
+    return this.creationTimes.get(shape) ?? 0
+  }
+
+  // Like updateShapeStyle, but at the given time rather than at @.
+  updateShapeStyleAt(time: number, shape: SBase, attr: string, value: any) {
+    this.addToTimeline(new TLE.UpdateShapeNoAnimation(shape, time, attr, value))
   }
 
   setCardinalToPoint(shape: SBase, cardinal: string, pos: XY) {
