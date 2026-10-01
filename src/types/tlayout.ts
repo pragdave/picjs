@@ -22,6 +22,8 @@
 // (or from its creation, if later) until it enters, so it doesn't flash up at
 // its default position.
 //
+// `a + b` makes a TLayoutGroup, which steps several layouts together.
+//
 // Each of these can be replaced by setting a function on the layout. They are
 // called once per shape, with `@` at that shape's start:
 //
@@ -48,6 +50,11 @@ interface Placed {
 }
 
 type Hook = TFunction | TNative
+
+interface LayoutPlan {
+  placements: LayoutPlacement[]   // what the layout places now, in order
+  exiting: SBase[]                // what it placed last time but not now
+}
 
 export class TLayout extends TBase<TFunction> {
 
@@ -77,15 +84,27 @@ export class TLayout extends TBase<TFunction> {
   }
 
   step(interpreter: Interpreter, staggerArg?: TA) {
+    this.animate(interpreter, this.plan(interpreter), staggerArg)
+    return this
+  }
+
+  // Run the layout function and work out what has changed, without touching
+  // the timeline.
+  plan(interpreter: Interpreter): LayoutPlan {
+    const placements = this.run(interpreter, true)
+    const nowPlaced = new Set(placements.map(p => p.shape))
+    const exiting = [...this.placed.keys()].filter(shape => !nowPlaced.has(shape))
+    return { placements, exiting }
+  }
+
+  // Animate a plan, starting at @. Leaves @ at the end of the last animation.
+  animate(interpreter: Interpreter, plan: LayoutPlan, staggerArg?: TA) {
     const dispatcher = interpreter.dispatcher
     const start = dispatcher.currentRecordingTime()
     const stagger = this.stagger(staggerArg)
     let slot = 0
     const nextSlot = () => dispatcher.setRecordingTime(start + stagger * slot++)
 
-    const placements = this.run(interpreter, true)
-    const nowPlaced = new Set(placements.map(p => p.shape))
-    const exiting = [...this.placed.keys()].filter(shape => !nowPlaced.has(shape))
     const hooks = {
       transition: this.hook(`transition`, `(shape, from, to)`),
       enter: this.hook(`enter`, `(shape, at)`),
@@ -95,7 +114,7 @@ export class TLayout extends TBase<TFunction> {
     // Each shape's animation starts `stagger` after the previous one's start,
     // whatever that animation did to `@`. The step ends when the last ends.
     const end = dispatcher.latestAnimationEndOf(start, () => {
-      for (const p of placements) {
+      for (const p of plan.placements) {
         const entering = !this.placed.has(p.shape)
         if (!entering && this.isUnchanged(interpreter, p)) continue
 
@@ -107,7 +126,7 @@ export class TLayout extends TBase<TFunction> {
         this.remember(interpreter, p)
       }
 
-      for (const shape of exiting) {
+      for (const shape of plan.exiting) {
         nextSlot()
         this.exit(interpreter, shape, hooks.exit)
         this.placed.delete(shape)
@@ -115,7 +134,10 @@ export class TLayout extends TBase<TFunction> {
     })
 
     dispatcher.setRecordingTime(end)
-    return this
+  }
+
+  opPlus(other: TA) {
+    return combineLayouts(this, other)
   }
 
   private transition(interpreter: Interpreter, p: LayoutPlacement, hook: Hook | null) {
@@ -236,4 +258,64 @@ export class TLayout extends TBase<TFunction> {
   toNative() {
     return `layout(«function»)`
   }
+}
+
+
+// `a + b`: step several layouts together. Each starts at the same @, with its
+// own settings and history, and @ then advances to whichever finishes last.
+export class TLayoutGroup extends TBase<TLayout[]> {
+
+  constructor(layouts: TLayout[]) {
+    super([...new Set(layouts)], AnimationStyle.none)
+
+    this.attrs.step = new TNative(`step`, [`[stagger]`],
+      `step every layout in the group, all starting together`,
+      (interpreter, stagger) => this.step(interpreter, stagger))
+  }
+
+  step(interpreter: Interpreter, staggerArg?: TA) {
+    const dispatcher = interpreter.dispatcher
+    const plans = this.value.map(layout => layout.plan(interpreter))
+    this.checkNoShapeIsPlacedTwice(plans)
+
+    const start = dispatcher.currentRecordingTime()
+    let end = start
+    this.value.forEach((layout, i) => {
+      dispatcher.setRecordingTime(start)
+      layout.animate(interpreter, plans[i], staggerArg)
+      end = Math.max(end, dispatcher.currentRecordingTime())
+    })
+
+    dispatcher.setRecordingTime(end)
+    return this
+  }
+
+  opPlus(other: TA) {
+    return combineLayouts(this, other)
+  }
+
+  toNative() {
+    return `«${this.value.length} layouts, combined with +»`
+  }
+
+  private checkNoShapeIsPlacedTwice(plans: LayoutPlan[]) {
+    const seen = new Set<SBase>()
+    for (const plan of plans) {
+      for (const { shape } of plan.placements) {
+        if (seen.has(shape))
+          throw new RTE(`a ${shape.shapeName} is placed by more than one of the layouts being stepped together`)
+        seen.add(shape)
+      }
+    }
+  }
+}
+
+function layoutsIn(value: TA): TLayout[] {
+  if (value instanceof TLayout) return [value]
+  if (value instanceof TLayoutGroup) return value.value
+  throw new RTE(`+ can combine a layout only with other layouts, not with ${value?.toNative?.() ?? value}`)
+}
+
+function combineLayouts(a: TA, b: TA) {
+  return new TLayoutGroup([...layoutsIn(a), ...layoutsIn(b)])
 }

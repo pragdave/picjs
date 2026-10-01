@@ -418,6 +418,79 @@ describe(`layout`, () => {
     })
   })
 
+  describe(`combining layouts with +`, () => {
+    const TwoViews = `
+      a = Box
+      b = Box
+      ax = 100
+      bx = 200
+      va = layout(() => { a.c = (ax, 0) })
+      vb = layout(() => { b.c = (bx, 0) })
+      vb.take = 2
+    `
+
+    it(`steps every layout from the same @, and ends when the last one does`, () => {
+      const dispatcher = runProgram(`${TwoViews}  both = va + vb  ax = 150  bx = 250  both.step()`)
+      const anims = animations(dispatcher)
+      expect(anims.map(a => [a.start, a.end])).toEqual([[0, expect.closeTo(0.7)], [0, 2]])
+      expect(dispatcher.currentRecordingTime()).toBe(2)
+    })
+
+    it(`keeps each layout's own settings and history`, () => {
+      const dispatcher = runProgram(`${TwoViews}
+        ax = 150  va.step()          // va alone, so vb has not seen it
+        bx = 250  (va + vb).step()   // va: nothing new; vb: catches up
+      `)
+      const anims = animations(dispatcher)
+      expect(anims.map(a => [a.start, a.end])).toEqual([
+        [0, expect.closeTo(0.7)],
+        [expect.closeTo(0.7), expect.closeTo(2.7)],
+      ])
+    })
+
+    it(`flattens, and steps each layout only once`, () => {
+      const dispatcher = runProgram(`${TwoViews}
+        c = Box
+        cx = 300
+        vc = layout(() => { c.c = (cx, 0) })
+        all = (va + vb) + (vc + va)
+        ax = 150  bx = 250  cx = 350
+        all.step()
+      `)
+      expect(animations(dispatcher).length).toBe(3)
+      expect(animations(dispatcher).map(a => a.start)).toEqual([0, 0, 0])
+    })
+
+    it(`passes a stagger given to step() on to every layout`, () => {
+      const dispatcher = runProgram(`
+        a1 = Box
+        a2 = Box
+        b1 = Box
+        b2 = Box
+        n = 0
+        va = layout(() => { a1.c = (n, 0)  a2.c = (n, 10) })
+        vb = layout(() => { b1.c = (n, 20)  b2.c = (n, 30) })
+        n = 5
+        (va + vb).step(0.5)
+      `)
+      // entries come back in time order
+      expect(animations(dispatcher).map(a => a.start)).toEqual([0, 0, 0.5, 0.5])
+    })
+
+    it(`is an error when two of the layouts place the same shape`, () => {
+      expect(() => runProgram(`
+        a = Box
+        va = layout(() => { a.c = (1, 0) })
+        vb = layout(() => { a.c = (2, 0) })
+        (va + vb).step()
+      `)).toThrow(/placed by more than one/)
+    })
+
+    it(`only works with layouts`, () => {
+      expect(() => runProgram(`${TwoViews}  va + 1`)).toThrow(/\+/)
+    })
+  })
+
   describe(`errors`, () => {
     it(`requires a function`, () => {
       expect(() => runProgram(`layout(3)`)).toThrow(/layout.*function/)
