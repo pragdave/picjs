@@ -356,6 +356,68 @@ describe(`layout`, () => {
     })
   })
 
+  describe(`stagger`, () => {
+    const ThreeBoxes = `
+      a = Box
+      b = Box
+      c = Box
+      d = Box
+      spots = [100, 200, 300]
+      show_d = true
+      view = layout(() => {
+        a.c = (spots[0], 0)
+        b.c = (spots[1], 0)
+        c.c = (spots[2], 0)
+        if (show_d) { d.c = (400, 0) }
+      })
+    `
+
+    it(`starts each changed shape stagger seconds after the previous one`, () => {
+      const dispatcher = runProgram(`${ThreeBoxes}  view.stagger = 0.5  spots = [150, 250, 350]  view.step()`)
+      expect(animations(dispatcher).map(a => a.start)).toEqual([0, 0.5, 1])
+      expect(dispatcher.currentRecordingTime()).toBeCloseTo(1.7)
+    })
+
+    it(`does not give unchanged shapes a slot`, () => {
+      const dispatcher = runProgram(`${ThreeBoxes}  view.stagger = 0.5  spots = [150, 200, 350]  view.step()`)
+      expect(animations(dispatcher).map(a => a.start)).toEqual([0, 0.5])
+    })
+
+    it(`can be given for a single step`, () => {
+      const src = `${ThreeBoxes}  view.stagger = 0.5  spots = [150, 250, 350]  view.step(0.2)
+                   spots = [100, 200, 300]  view.step()`
+      const starts = animations(runProgram(src)).map(a => a.start)
+      expect(starts.slice(0, 3)).toEqual([0, 0.2, expect.closeTo(0.4)])
+      const second = starts[3]
+      expect(starts.slice(3).map(s => s - second)).toEqual([0, 0.5, 1])
+    })
+
+    it(`puts exits after the shapes the layout placed`, () => {
+      const dispatcher = runProgram(`${ThreeBoxes}  spots = [150, 200, 300]  show_d = false  view.step(0.5)`)
+      const anims = animations(dispatcher)
+      expect(anims.map(a => a.start)).toEqual([0, 0.5])
+      expect((anims[1].thing as any).shape).toBe(dispatcher.shapes()[3])
+    })
+
+    it(`sets @ for hooks to the shape's staggered start`, () => {
+      const dispatcher = runProgram(`${ThreeBoxes}
+        times = []
+        view.transition = (shape, from, to) => { times.push(@ + 0) }
+        spots = [150, 250, 350]
+        view.step(0.25)
+      `)
+      const times = dispatcher.getCurrentBinding().get_variable_value(`times`).value
+      expect(times.map((t: any) => t.value)).toEqual([0, 0.25, 0.5])
+    })
+
+    it(`must be a number of seconds that is not negative`, () => {
+      expect(() => runProgram(`${ThreeBoxes}  view.stagger = -1  spots = [1, 2, 3]  view.step()`))
+        .toThrow(/stagger/)
+      expect(() => runProgram(`${ThreeBoxes}  spots = [1, 2, 3]  view.step("soon")`))
+        .toThrow(/stagger/)
+    })
+  })
+
   describe(`errors`, () => {
     it(`requires a function`, () => {
       expect(() => runProgram(`layout(3)`)).toThrow(/layout.*function/)

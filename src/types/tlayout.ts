@@ -13,6 +13,9 @@
 // * a shape placed only last time exits: it fades out where it is
 //
 // All of these start at `@`, and `@` then advances to the end of the last one.
+// With `view.stagger = s` (or `view.step(s)` for one step), each shape instead
+// starts s seconds after the previous one, in the order the layout placed them,
+// with exits last.
 // Shapes the layout has never placed are never touched.
 //
 // A shape first placed in a step is hidden from when the layout was declared
@@ -20,7 +23,7 @@
 // its default position.
 //
 // Each of these can be replaced by setting a function on the layout. They are
-// called once per shape, with `@` at the step's start:
+// called once per shape, with `@` at that shape's start:
 //
 //   view.transition = (shape, from, to) => ...   from, to: positions of the
 //                                                cardinal point the layout set
@@ -63,9 +66,9 @@ export class TLayout extends TBase<TFunction> {
 
     this.declaredAt = interpreter.dispatcher.currentRecordingTime()
 
-    this.attrs.step = new TNative(`step`, [],
+    this.attrs.step = new TNative(`step`, [`[stagger]`],
       `rerun the layout and animate every shape whose position has changed`,
-      (interpreter) => this.step(interpreter))
+      (interpreter, stagger) => this.step(interpreter, stagger))
 
     for (const p of this.run(interpreter, false)) {
       this.manage(p.shape)
@@ -73,9 +76,12 @@ export class TLayout extends TBase<TFunction> {
     }
   }
 
-  step(interpreter: Interpreter) {
+  step(interpreter: Interpreter, staggerArg?: TA) {
     const dispatcher = interpreter.dispatcher
     const start = dispatcher.currentRecordingTime()
+    const stagger = this.stagger(staggerArg)
+    let slot = 0
+    const nextSlot = () => dispatcher.setRecordingTime(start + stagger * slot++)
 
     const placements = this.run(interpreter, true)
     const nowPlaced = new Set(placements.map(p => p.shape))
@@ -86,22 +92,23 @@ export class TLayout extends TBase<TFunction> {
       exit: this.hook(`exit`, `(shape, from)`),
     }
 
-    // Each shape's animation starts at `start`, whatever the previous one did
-    // to `@`. The step ends when the last of them does.
+    // Each shape's animation starts `stagger` after the previous one's start,
+    // whatever that animation did to `@`. The step ends when the last ends.
     const end = dispatcher.latestAnimationEndOf(start, () => {
       for (const p of placements) {
-        dispatcher.setRecordingTime(start)
-        if (!this.placed.has(p.shape))
-          this.enter(interpreter, p, start, hooks.enter)
-        else if (!this.isUnchanged(interpreter, p))
-          this.transition(interpreter, p, hooks.transition)
+        const entering = !this.placed.has(p.shape)
+        if (!entering && this.isUnchanged(interpreter, p)) continue
+
+        nextSlot()
+        if (entering)
+          this.enter(interpreter, p, dispatcher.currentRecordingTime(), hooks.enter)
         else
-          continue
+          this.transition(interpreter, p, hooks.transition)
         this.remember(interpreter, p)
       }
 
       for (const shape of exiting) {
-        dispatcher.setRecordingTime(start)
+        nextSlot()
         this.exit(interpreter, shape, hooks.exit)
         this.placed.delete(shape)
       }
@@ -209,6 +216,14 @@ export class TLayout extends TBase<TFunction> {
     if (hook === undefined) return null
     if (hook instanceof TFunction || hook instanceof TNative) return hook
     throw new RTE(`a layout's ${name} must be a function ${params}, but it is ${hook.toNative()}`)
+  }
+
+  // The stagger passed to step(), or else the layout's stagger attribute
+  private stagger(arg?: TA): number {
+    const value = arg ?? this.attrs.stagger
+    if (value === undefined) return 0
+    if (value instanceof TNumber && value.value >= 0) return value.value
+    throw new RTE(`a layout's stagger must be a number of seconds, 0 or more, but it is ${value.toNative()}`)
   }
 
   private animationParams() {
