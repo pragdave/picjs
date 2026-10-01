@@ -221,6 +221,10 @@ export class Dispatcher {
     this.timeline.addAnimation(mover)
   }
 
+  latestAnimationEndOf(notBefore: number, fn: () => void): number {
+    return this.timeline.latestEndOf(notBefore, fn)
+  }
+
   addPause(message: string | null) {
     this.timeline.addPause(message)
   }

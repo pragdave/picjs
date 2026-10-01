@@ -29,6 +29,9 @@ export class Timeline {
   // this to notice when something else has moved one of its shapes.
   private positionChanges = new WeakMap<SBase, number>()
 
+  // While set, the latest end time of the animations added. See latestEndOf().
+  private watermark: number | null = null
+
   constructor(public dispatcher: Dispatcher) {
     this.timeline = new MinPriorityQueue({ priority: (entry) => entry.key })
     this.animationRunner = new AnimationRunner(dispatcher)
@@ -96,6 +99,23 @@ export class Timeline {
 
     if (animation instanceof MoveToAnimator || animation instanceof MoveByAnimator)
       this.notePositionChange(animation.movedShape())
+
+    if (this.watermark !== null)
+      this.watermark = Math.max(this.watermark, this.lastAnimation.end)
+  }
+
+  // Run fn, and return the latest end time of any animation it adds, or
+  // `notBefore` if that is later.
+  latestEndOf(notBefore: number, fn: () => void): number {
+    const outer = this.watermark
+    this.watermark = notBefore
+    try {
+      fn()
+      return this.watermark as number
+    }
+    finally {
+      this.watermark = outer === null ? null : Math.max(outer, this.watermark as number)
+    }
   }
 
   updateOtherGeometry(shape: SBase, attr: string, value: any) {

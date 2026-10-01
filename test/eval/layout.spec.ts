@@ -138,6 +138,83 @@ describe(`layout`, () => {
     })
   })
 
+  describe(`transition`, () => {
+    const LiftAndDrop = `${OneBox}
+      view.transition = (shape, from, to) => {
+        move shape to (from.x, 50) take 1
+        then move shape to (to.x, 50) take 2
+        then move shape to to take 1
+      }
+    `
+
+    it(`replaces the default move for shapes that changed`, () => {
+      const dispatcher = runProgram(`${LiftAndDrop}  px = 300  view.step()`)
+      const anims = animations(dispatcher)
+      expect(anims.map(a => [a.start, a.end])).toEqual([[0, 1], [1, 3], [3, 4]])
+    })
+
+    it(`advances @ to the end of the transition`, () => {
+      const dispatcher = runProgram(`${LiftAndDrop}  px = 300  view.step()`)
+      expect(dispatcher.currentRecordingTime()).toBe(4)
+    })
+
+    it(`is given the old and new positions`, () => {
+      const dispatcher = runProgram(`${LiftAndDrop}  px = 300  view.step()`)
+      dispatcher.applyTimelineUpTo(1)
+      expect(dispatcher.shapes()[0].x).toBeCloseTo(100)
+      expect(dispatcher.shapes()[0].y).toBeCloseTo(50)
+      dispatcher.applyTimelineUpTo(3)
+      expect(dispatcher.shapes()[0].x).toBeCloseTo(300)
+      dispatcher.applyTimelineUpTo(4)
+      expect(dispatcher.shapes()[0].y).toBeCloseTo(0)
+    })
+
+    it(`gives positions in the cardinal the layout used`, () => {
+      const dispatcher = runProgram(`
+        b = Box wid 2 ht 2
+        k = 0
+        seen = []
+        view = layout(() => {
+          if (k == 0) { b.c = (10, 10) } else { b.s = (20, 0) }
+        })
+        view.transition = (shape, from, to) => { seen.push(from)  seen.push(to) }
+        k = 1
+        view.step()
+      `)
+      // y grows downwards, so b.c at (10, 10) means b.s was at (10, 11)
+      const seen = dispatcher.getCurrentBinding().get_variable_value(`seen`).value
+      expect(seen.map((p: any) => [p.x, p.y])).toEqual([[10, 11], [20, 0]])
+    })
+
+    it(`runs every changed shape's transition from the same @`, () => {
+      const dispatcher = runProgram(`
+        a = Box
+        b = Box
+        spots = [100, 200]
+        view = layout(() => { a.c = (spots[0], 0)  b.c = (spots[1], 0) })
+        view.transition = (shape, from, to) => {
+          move shape to to take 1
+          @ += 5     // must not delay the next shape
+        }
+        spots = [150, 250]
+        view.step()
+      `)
+      expect(animations(dispatcher).map(a => a.start)).toEqual([0, 0])
+      expect(dispatcher.currentRecordingTime()).toBe(1)
+    })
+
+    it(`is not called when nothing changed`, () => {
+      const dispatcher = runProgram(`${LiftAndDrop}  view.step()`)
+      expect(animations(dispatcher)).toEqual([])
+      expect(dispatcher.currentRecordingTime()).toBe(0)
+    })
+
+    it(`must be a function`, () => {
+      expect(() => runProgram(`${OneBox}  view.transition = 3  px = 300  view.step()`))
+        .toThrow(/transition.*function/)
+    })
+  })
+
   describe(`errors`, () => {
     it(`requires a function`, () => {
       expect(() => runProgram(`layout(3)`)).toThrow(/layout.*function/)

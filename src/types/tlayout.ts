@@ -8,15 +8,21 @@
 // assignments rather than applying them. Every shape whose position differs from
 // the last time the layout placed it is animated there with a `move`, all
 // starting at `@`. `@` then advances to the end of those moves.
+//
+// Setting `view.transition = (shape, from, to) => ...` replaces that default
+// move. It is called once per changed shape with `@` at the step's start, and
+// `from` and `to` are both positions of the cardinal point the layout set.
 
 import { AnimationStyle, TA, TBase } from "./_base.js"
 import { TFunction } from "./tfunction.js"
 import { TNative } from "./tnative.js"
+import { TPosition } from "./tposition.js"
 import { RTE } from "../runtime_error.js"
 import { MoveToAnimator } from "../animators/_base.js"
 import type { Interpreter } from "../interpreter.js"
 import type { LayoutPlacement } from "../dispatcher.js"
 import type { SBase } from "../shapes.js"
+import type { Cardinals } from "../position.js"
 
 interface Placed {
   placement: LayoutPlacement
@@ -43,17 +49,25 @@ export class TLayout extends TBase<TFunction> {
   step(interpreter: Interpreter) {
     const dispatcher = interpreter.dispatcher
     const start = dispatcher.currentRecordingTime()
-    const params = this.animationParams()
-    let end = start
+    const changed = this.run(interpreter, true).filter(p => !this.isUnchanged(interpreter, p))
+    const transition = this.transition()
 
-    for (const p of this.run(interpreter, true)) {
-      if (this.isUnchanged(interpreter, p)) continue
-
-      const mover = new MoveToAnimator(p.shape, p.cardinal, p.pos, params)
-      dispatcher.addAnimation(mover)
-      end = Math.max(end, start + mover.duration())
-      this.remember(interpreter, p)
-    }
+    // Each changed shape's animation starts at `start`, whatever the
+    // previous one did to `@`. The step ends when the last of them does.
+    const end = dispatcher.latestAnimationEndOf(start, () => {
+      for (const p of changed) {
+        dispatcher.setRecordingTime(start)
+        const last = this.placed.get(p.shape)
+        if (transition && last) {
+          const from = this.positionAt(last.placement, p.cardinal)
+          interpreter.callFunction(transition, [p.shape, from, new TPosition(p.pos)])
+        }
+        else {
+          dispatcher.addAnimation(new MoveToAnimator(p.shape, p.cardinal, p.pos, this.animationParams()))
+        }
+        this.remember(interpreter, p)
+      }
+    })
 
     dispatcher.setRecordingTime(end)
     return this
@@ -92,6 +106,21 @@ export class TLayout extends TBase<TFunction> {
       && last.placement.cardinal === p.cardinal
       && last.placement.pos.x === p.pos.x
       && last.placement.pos.y === p.pos.y
+  }
+
+  // Where `placement` put the shape's `cardinal` point.
+  private positionAt(placement: LayoutPlacement, cardinal: Cardinals) {
+    const shape = placement.shape
+    const from = shape.cardinalOffset(placement.cardinal)
+    const to = shape.cardinalOffset(cardinal)
+    return new TPosition({ x: placement.pos.x - from.x + to.x, y: placement.pos.y - from.y + to.y })
+  }
+
+  private transition(): TFunction | TNative | null {
+    const transition = this.attrs.transition
+    if (transition === undefined) return null
+    if (transition instanceof TFunction || transition instanceof TNative) return transition
+    throw new RTE(`a layout's transition must be a function (shape, from, to), but it is ${transition.toNative()}`)
   }
 
   private animationParams() {
