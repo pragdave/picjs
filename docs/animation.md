@@ -7,7 +7,13 @@ eleventyNavigation:
   order: 5
 ---
 
-picjs lets you change attributes of drawing objects over time.
+picjs lets you change attributes of drawing objects over time. You can do this directly, by saying
+what should move where and when, or you can describe how a drawing reflects some data, and let
+picjs animate the changes as that data changes.
+
+## Animation Primitives
+
+The primitives say exactly what changes, and when.
 
 ~~~ picjs example animated
 a = box "Hello"
@@ -63,7 +69,7 @@ set l.thickness to .1
 
 Notice we can set `@` to any value, including ones before the current animation time. 
 
-## Chaining Animations
+### Chaining Animations
 
 Sometimes, though, you do want animations to run sequentially. `then` to the rescue.
 
@@ -78,7 +84,7 @@ then move b to (1,-1)
 then set l.thickness to .2
 ~~~
 
-## More About `@`
+### More About `@`
 
 The `@` value has some other tricks up its temporal sleeve. It has a number of attributes:
 
@@ -107,12 +113,12 @@ Called after an animation, it updates the value of `@` so that a subsequent anim
 immediately after the previous one. For adjacent animations, it's like using `then`. It's more
 useful when you have your animations broken into chunks, and you want to synchronize their execution.
 
-## Easing
+### Easing
 
 As with _interpolations_, you can add an easing function to animations:
 `linear`, `cubicIn`, `cubicOut`, `cubic`, `cubicInOut`, `quadIn`, `quadOut`, `quad`, `quadInOut`, and `bounce`.
 
-## Lines and Arrows
+### Lines and Arrows
 
 Lines and arrows have two distinct types of animation. We've already seen the first: their start and
 end points track the shapes they are attached to, and they have attributes like `stroke` to set the
@@ -132,7 +138,7 @@ l = line -> from c1 to c2 nodraw
 draw l take 2 ease quad
 ~~~
 
-## Attachment
+### Attachment
 
 You'll probably notice that if you join two shapes with a line and move one of the shapes, the line
 adjusts so it is still attached.
@@ -168,3 +174,112 @@ move b4 up .5
 
 Perhaps surprisingly, `b4` doesn't move. The constraint glues it to `b3`, and the animation respects
 that.
+
+The [Towers of Hanoi breakdown](/hanoi-breakdown/) shows these primitives working together in a
+complete animation.
+
+## Higher-Level Animations
+
+Often what you want to show is an algorithm at work: values being sorted, disks moving between pegs.
+Writing a `move` for every change mixes the animation into the algorithm. Instead, you can describe
+_where_ things should be, given the current state of your program, and let picjs work out the
+animations.
+
+### Layouts
+
+A layout is a function that positions shapes. `layout()` runs it straight away, so the shapes start
+where it puts them. Each call to the layout's `step()` runs it again, and animates every shape whose
+position has changed.
+
+~~~ picjs example animated
+a = box "A"
+b = box "B"
+c = box "C"
+
+order = [a, b, c]
+view = layout(() => {
+  order.each((shape, i) => { shape.c = (i * 1.5, 0) })
+})
+
+@ += .5
+order = [c, a, b]
+view.step()
+order = [a, b, c]
+view.step()
+~~~
+
+The code that changes `order` knows nothing about animation: it just calls `step()` when it's ready
+for the drawing to catch up. Each step starts at `@`, and `@` then advances past its animations, so
+consecutive steps play one after the other.
+
+Set `view.take` and `view.ease` to change how long the moves take and how they're eased.
+
+### Transitions
+
+By default, a shape moves to its new position in a straight line. To change that, give the layout a
+`transition` function. It's called for each shape that moves, with the shape and its old and new
+positions, and can run whatever animations it likes.
+
+~~~ picjs example animated
+a = box "A"
+b = box "B"
+c = box "C"
+
+order = [a, b, c]
+view = layout(() => {
+  order.each((shape, i) => { shape.c = (i * 1.5, 0) })
+})
+view.transition = (shape, from, to) => {
+  move shape to from - (0, 1) take .3 ease "cubicOut"
+  then move shape to to - (0, 1) take .5
+  then move shape to to take .3 ease "cubicIn"
+}
+
+@ += .5
+order = [c, a, b]
+view.step()
+~~~
+
+The positions are for whichever point the layout set: here, the shapes' centers.
+
+### Shapes Entering and Leaving
+
+If a step places a shape the layout didn't place last time, the shape fades in at its new position.
+If the layout stops placing a shape, it fades out where it is. Until a layout first places a shape,
+the shape stays hidden. Set `view.enter = (shape, at) => ...` or `view.exit = (shape, from) => ...`
+to do something else instead.
+
+Normally everything in a step moves at once. Give `step()` a time, or set `view.stagger`, and each
+shape starts that much after the one before.
+
+~~~ picjs example animated
+a = box "A"
+b = box "B"
+c = box "C"
+
+shown = [a]
+view = layout(() => {
+  shown.each((shape, i) => { shape.c = (i * 1.5, 0) })
+})
+
+@ += .5
+shown = [a, b, c]
+view.step(.3)
+shown = [c, a]
+view.step()
+~~~
+
+The [layout version of the Towers of Hanoi](/higher-level-hanoi-breakdown/) puts these together.
+
+## Combining Layouts
+
+A drawing can have more than one layout: one for the data, say, and another for markers that point
+at it. Add layouts together with `+`, and stepping the result steps them all at once, each with its
+own settings and transitions. A shape should belong to just one of them.
+
+``` picjs code
+view = bars + markers
+view.step()
+```
+
+The [bubble sort breakdown](/bubble-sort-breakdown/) uses two layouts this way.
