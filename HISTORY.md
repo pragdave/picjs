@@ -1,5 +1,20 @@
 # PicJS History
 
+## 0.3.0
+
+* Layouts separate an algorithm from its animation: `view = layout(fn)` positions shapes from your
+  program's data, and each `view.step()` animates every shape whose position changed
+* Layouts can set `take`, `ease` and `stagger`, and replace the default animations with
+  `view.transition`, `view.enter` and `view.exit`; shapes fade in and out as a layout starts and
+  stops placing them
+* Combine layouts with `+` to step them together
+* New examples: the Towers of Hanoi using a layout, and an animated bubble sort
+* Fix a shape's opacity not applying to its label, so labels stayed visible while their shape
+  faded
+* Vim support updated for the current syntax, with indentation; new Neovim plugin in `extras/nvim`
+* Docs: animation page split into primitives and higher-level animations, with breakdowns of the
+  layout-based Hanoi and bubble sort
+
 ## 0.2.12
 
 * The package is now published as `@pragdave/picjs` (previously `@strike48/picjs`); update your imports and `npm install @pragdave/picjs`
