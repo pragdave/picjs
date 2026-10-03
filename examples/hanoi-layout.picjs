@@ -1,0 +1,61 @@
+// Towers of Hanoi, with the algorithm kept apart from the animation.
+//
+// The algorithm only changes `pegs`, a list of the disks on each peg. The
+// layout says where every disk sits for any value of `pegs`, and each
+// view.step() animates the disks from where they were to where they now are.
+
+NumDisks = 5
+PoleSep  = 230
+Box.pole.fill = ~brown.lighten(5%)
+DiskColor = rgb(220,180,140)
+
+// ---------------------------------------------------------------- the model
+
+pegs = [[], [], []]   // disk numbers, bottom first; 1 is the smallest
+
+// ---------------------------------------------------------------- the algorithm
+
+hanoi = (n, from, to, via) => {
+  if (n > 0) {
+    hanoi(n-1, from, via, to)
+    pegs[to].push(pegs[from].pop())
+    view.step()
+    hanoi(n-1, via, to, from)
+  }
+}
+
+// ---------------------------------------------------------------- the view
+
+poles = [0..2].map(number => {
+  pole = Box 20x150 rad 4 .pole at (100 + number*PoleSep, 300)
+  Box .pole 160x20 rx 7.5 at pole.s - (0,10) // the base
+  pole
+})
+
+disks = [1..NumDisks].map(d => Box ht 20 wid 40 + d*15 rx 10 ry 5 fill DiskColor.spin(d*40))
+
+view = layout(() => {
+  pegs.each((peg, p) => {
+    peg.each((d, height) => {
+      disks[d-1].s = poles[p].s - (0, (height+1) * 22)
+    })
+  })
+})
+
+// Lift the disk clear of its pole, carry it across at a steady speed, and
+// lower it into place.
+view.transition = (disk, from, to) => {
+  top = poles[0].n.y - 10
+  distance = ((to.x - from.x) / PoleSep).abs()   // 1 or 2 poles across
+  move disk.s      to (from.x, top) ease "cubicIn"
+  then move disk.s to (to.x, top)   ease "linear" take 0.3 + 0.3*distance
+  then move disk.s to to            ease "cubicOut"
+}
+
+// ---------------------------------------------------------------- run it
+
+[NumDisks..1].each(d => pegs[0].push(d))
+view.step(0.3)                  // the disks fade in, one after another
+@ += 0.3
+
+hanoi(NumDisks, 0, 2, 1)

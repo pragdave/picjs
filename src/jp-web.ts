@@ -61,9 +61,11 @@ const examplesBase = (window as any).__PICJS_EXAMPLES_BASE ?? `/examples/`
 const examples: { file: string; description: string }[] = [
   { file: "state-machine.picjs",              description: "A state machine" },
   { file: "architecture.picjs",               description: "Basic Architecture diagram" },
+  { file: "bubble-sort.picjs",                description: "Bubble sort animation, using layouts" },
   { file: "economy.picjs",                    description: "Simple model of supply and demand" },
   { file: "gear.picjs",                       description: "Parametric gear" },
   { file: "hanoi.picjs",                      description: "Hanoi animation" },
+  { file: "hanoi-layout.picjs",               description: "Hanoi animation, using a layout" },
   { file: "kernighan.picjs",                  description: "Diagram from Kernighan's PIC paper" },
   { file: "line-labels.picjs",                description: "Demo of labelling on lines" },
   { file: "palette.picjs",                    description: "Themes and palettes" },

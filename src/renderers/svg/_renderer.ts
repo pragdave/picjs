@@ -158,6 +158,14 @@ export class Renderer {
       groupNode.attrs.id = mainId
     }
 
+    // A shape's opacity applies to its label too, so it goes on the group
+    if (parentNode.attrs.opacity !== undefined) {
+      groupNode.attrs.opacity = parentNode.attrs.opacity
+      delete parentNode.attrs.opacity
+    } else {
+      delete groupNode.attrs.opacity
+    }
+
     // Replace children
     groupNode.children = [parentNode, ...childNodes]
 

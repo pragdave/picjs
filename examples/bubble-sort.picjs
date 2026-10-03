@@ -1,0 +1,82 @@
+// Bubble sort, with the algorithm kept apart from the animation.
+//
+// The algorithm only changes `items` (and two markers: which pair it is
+// comparing, and where the sorted part starts). Two layouts say where every
+// shape sits for any value of those, and each view.step() animates the
+// shapes from where they were to where they now are.
+
+N    = 8
+Spacing = 1    // distance between bar centers
+Unit = 0.35     // bar height per unit of value
+BarColor = rgb(120, 170, 220)
+
+// ---------------------------------------------------------------- the model
+
+items = [5, 2, 8, 1, 7, 3, 6, 4]
+comparing = -1       // index of the left item being compared, or -1 for none
+sorted_from = N      // the items from here on are in their final places
+
+// ---------------------------------------------------------------- the algorithm
+
+bubble_sort = () => {
+  [0..N-2].each(pass => {
+    [0..N-2-pass].each(i => {
+      comparing = i
+      view.step()
+      if (items[i] > items[i+1]) {
+        larger = items[i]
+        items[i] = items[i+1]
+        items[i+1] = larger
+        view.step()
+      }
+    })
+    sorted_from = N - 1 - pass
+  })
+  comparing = -1
+  sorted_from = 0
+  view.step()
+}
+
+// ---------------------------------------------------------------- the view
+
+slot = i => (i * Spacing, 0)   // where the bottom of the bar at index i sits
+
+bars = [1..N].map(v => Box "#{v}" wid 0.8*Spacing ht v*Unit rad 0.08 fill BarColor.spin(v*30))
+bracket = Box wid 1.9*Spacing ht 0.12 rad 0.06 fill ~gray
+ticks = [1..N].map(_ => Circle rad 0.08 fill ~seagreen)
+
+// The bars: each value's bar stands at that value's index
+bar_view = layout(() => {
+  items.each((v, i) => { bars[v-1].s = slot(i) })
+})
+
+// When two bars swap, the one moving right (the larger) lifts just clear of
+// the other, whose value is now at the index this one is leaving
+bar_view.transition = (bar, from, to) => {
+  if (to.x > from.x) {
+    clear = items[from.x / Spacing] * Unit + 0.1
+    move bar.s      to from - (0, clear) take 0.25 ease "cubicOut"
+    then move bar.s to to - (0, clear)   take 0.4  ease "linear"
+    then move bar.s to to                take 0.25 ease "cubicIn"
+  }
+  else {
+    move bar.s to to take 0.9 ease "cubicInOut"
+  }
+}
+
+// The markers: a bracket under the pair being compared, and a tick under
+// each bar that has reached its final place
+marker_view = layout(() => {
+  if (comparing >= 0) { bracket.n = slot(comparing) + (Spacing/2, 0.1) }
+  ticks.each((tick, i) => {
+    if (i >= sorted_from) { tick.n = slot(i) + (0, 0.35) }
+  })
+})
+marker_view.take = 0.3
+
+view = bar_view + marker_view
+
+// ---------------------------------------------------------------- run it
+
+@ += 0.5
+bubble_sort()

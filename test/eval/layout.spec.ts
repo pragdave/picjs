@@ -250,6 +250,10 @@ describe(`layout`, () => {
         expect(opacityAt(Enter, 0.9, 1)).toBe(0)
       })
 
+      it(`waits, hidden, where it will enter, so it doesn't stretch the picture`, () => {
+        expect(xAt(Enter, 0, 1)).toBeCloseTo(200)
+      })
+
       it(`is in place at the start of the step, and fades in to its own opacity`, () => {
         expect(xAt(Enter, 1, 1)).toBeCloseTo(200)
         expect(opacityAt(Enter, 1, 1)).toBe(0)

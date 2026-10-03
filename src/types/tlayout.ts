@@ -20,7 +20,7 @@
 //
 // A shape first placed in a step is hidden from when the layout was declared
 // (or from its creation, if later) until it enters, so it doesn't flash up at
-// its default position.
+// its default position. It waits where it will enter.
 //
 // `a + b` makes a TLayoutGroup, which steps several layouts together.
 //
@@ -154,11 +154,17 @@ export class TLayout extends TBase<TFunction> {
     const dispatcher = interpreter.dispatcher
     const shape = p.shape
 
+    // Hide a shape we haven't managed before until now, waiting where it will
+    // enter so that, while hidden, it doesn't stretch the picture's bounds.
     if (!this.managed.has(shape)) {
       this.manage(shape)
       const hideFrom = Math.max(this.declaredAt, dispatcher.creationTimeOf(shape))
-      if (hideFrom < start)
+      if (hideFrom < start) {
         dispatcher.updateShapeStyleAt(hideFrom, shape, `opacity`, new TNumber(0))
+        dispatcher.setRecordingTime(hideFrom)
+        dispatcher.setCardinalToPoint(shape, p.cardinal, p.pos.x, p.pos.y)
+        dispatcher.setRecordingTime(start)
+      }
     }
 
     dispatcher.setCardinalToPoint(shape, p.cardinal, p.pos.x, p.pos.y)
