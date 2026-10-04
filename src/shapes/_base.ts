@@ -514,6 +514,31 @@ export class SBase extends TBase<null> {
   setAnimatableAttr(attr: string, newValue: any) {
     const paramName = ParamAliases[attr] || attr
     this.params[paramName] = newValue.toNative()
+
+    // A palette color is drawn using its slot, which beats the color itself.
+    // So the new color brings its own slot, or clears the old one, just as an
+    // explicit color does when the shape is created.
+    if (paramName === `fill` || paramName === `stroke`) {
+      const slot = newValue instanceof TColor ? newValue.paletteSlot : undefined
+      if (slot)
+        this.params[`_${paramName}_slot`] = slot
+      else
+        delete this.params[`_${paramName}_slot`]
+    }
+
+    // Labels inside the shape pick their color to contrast with its fill
+    if (paramName === `fill`) {
+      for (const child of this.children) {
+        child.params._parentFill = this.params.fill
+        if (this.params._fill_slot)
+          child.params._parentFillSlot = this.params._fill_slot
+        else
+          delete child.params._parentFillSlot
+        child.applyAutoColoring()
+        child.rememberRenderNeeded()
+      }
+    }
+
     if (attr === `rotation`)
       this.setRotationVector()
     this.rememberRenderNeeded()

@@ -5,6 +5,8 @@
 * Refer to earlier shapes by when they were drawn: `last box`, `2nd circle`, `second last line`,
   `first Shape`. They work anywhere a shape does, including constraints, `move`, `set` and
   assignments, and keep referring to the same shape after more are drawn
+* Fix changing a palette-colored shape's color after creating it (`b.fill = ~b5`, or animating it
+  with `set`) having no visible effect; labels inside it now re-color to match
 
 ## 0.3.0
 

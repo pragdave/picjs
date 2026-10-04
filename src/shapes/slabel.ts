@@ -27,10 +27,21 @@ export class SLabel extends SBase {
     super.setupParams(args)
     if (this.params.font)
       this.params.font = new TFont(this.params.font)
+
+    // What auto coloring starts from, so that coloring again (when the parent's
+    // fill changes) gives the same result as coloring a new label would
+    this.hidden._defaultFill = this.params.fill
+    this.hidden._defaultFillSlot = this.params._fill_slot
   }
 
   override applyAutoColoring() {
     if (this.hidden._hasExplicitFill || !this.params._parentFill) return
+
+    this.params.fill = this.hidden._defaultFill
+    if (this.hidden._defaultFillSlot)
+      this.params._fill_slot = this.hidden._defaultFillSlot
+    else
+      delete this.params._fill_slot
 
     const parentSlot = this.params._parentFillSlot
     if (parentSlot) {

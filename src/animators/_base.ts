@@ -72,7 +72,9 @@ export abstract class AnimatorBase {
       this._done = true 
       ratio = 1.0
     }
-    const nextValue = this.range.interpolate(ratio)
+    // Finish on the end value itself, not an interpolated copy of it: a
+    // palette color then keeps its palette slot
+    const nextValue = ratio === 1.0 ? this.range.end : this.range.interpolate(ratio)
     this._step(nextValue)
   }
 
