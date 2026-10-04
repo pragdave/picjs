@@ -110,6 +110,13 @@ export class Dispatcher {
     return this.shapeGraph.findLastOfType(shapeName)
   }
 
+  // The shapes of a kind drawn so far. While a shape's position is being
+  // worked out again, "so far" means before that shape was drawn, so that a
+  // reference such as `last box` keeps meaning the same shape.
+  shapesOfKindDrawnSoFar(shapeName: string): SBase[] {
+    return this.shapeGraph.shapesOfKindBefore(shapeName, this.currentEvaluatingShape)
+  }
+
   renderUpdatedShapes() {
     const svgNodes = this.shapeGraph.renderUpdatedOn(this.renderer)
     this.lastRenderNodes = svgNodes

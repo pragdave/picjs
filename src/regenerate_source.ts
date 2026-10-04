@@ -165,6 +165,13 @@ export class RegenerateSource extends Visitor{
     return `[${start}..${end}]`
   }
 
+  VisitShapeReference(node: AST.ShapeReference) {
+    const shape = node.shape === `SBase` ? `Shape` : node.shape.slice(1)
+    if (node.fromEnd)
+      return node.position === 1 ? `last ${shape}` : `${ordinal(node.position)} last ${shape}`
+    return `${ordinal(node.position)} ${shape}`
+  }
+
   VisitShapeDefaultGetter(node: AST.ShapeDefaultGetter) {
     return `${node.shape}.${node.attr}`
   }
@@ -235,3 +242,8 @@ export class RegenerateSource extends Visitor{
 
 }
 
+// 1st, 2nd, 3rd, 4th, ..., 11th, 12th, 13th, ..., 21st
+export function ordinal(n: number) {
+  const suffix = (n % 100 >= 11 && n % 100 <= 13) ? `th` : ([`th`, `st`, `nd`, `rd`][n % 10] ?? `th`)
+  return `${n}${suffix}`
+}

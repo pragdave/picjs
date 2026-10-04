@@ -286,6 +286,14 @@ export interface ShapeDefaultGetter extends Base {
   attr: string,
 }
 
+// the `position`th shape of a kind drawn so far, counting from the end if `fromEnd`
+export interface ShapeReference extends Base {
+  type: `ShapeReference`
+  shape: string,         // SBox, SLine, ..., or SBase for any shape
+  position: number,      // 1 is the first (or, from the end, the last)
+  fromEnd: boolean,
+}
+
 export interface SetTime extends Base {
   type: `SetTime`
   when: string | number,
@@ -381,6 +389,7 @@ export type Node
   | Shape
   | ShapeDefaultGetter
   | ShapeDefaultSetter
+  | ShapeReference
   | InterpolatedString
   | String
   | UnaryExpression

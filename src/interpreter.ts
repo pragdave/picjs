@@ -26,7 +26,7 @@ import {
 import { SGroup } from "./shapes/sgroup.js"
 import { isKnownAttribute, acceptedAttributesFor } from "./shapes/attributes.js"
 
-import { RegenerateSource } from "./regenerate_source.js"
+import { RegenerateSource, ordinal } from "./regenerate_source.js"
 
 
 interface InterpreterResult {
@@ -455,7 +455,7 @@ export class Interpreter extends Visitor{
     let shape
     let cardinal = `c`
 
-    if (node.what.type === `VariableValue`) { // move myshape ...
+    if (isWholeShape(node.what)) {   // move myshape ..., move last box ...
       shape = this.accept(node.what)
     }
     else if (node.what.type === `QualifiedLValue`) { // move myshape.nw
@@ -483,7 +483,7 @@ export class Interpreter extends Visitor{
   VisitMoveBy(node: AST.MoveBy) {
     let shape
 
-    if (node.what.type === `VariableValue`) {
+    if (isWholeShape(node.what)) {
       shape = this.accept(node.what)
     }
     else if (node.what.type === `QualifiedLValue`) {
@@ -934,6 +934,19 @@ export class Interpreter extends Visitor{
     SLine: [`SLine`, `SPolyline`],
   }
 
+  VisitShapeReference(node: AST.ShapeReference) {
+    const shapes = this.dispatcher.shapesOfKindDrawnSoFar(node.shape)
+    const index = node.fromEnd ? shapes.length - node.position : node.position - 1
+    if (index < 0 || index >= shapes.length)
+      throw new RTE(shapeReferenceError(node, shapes.length))
+
+    // A shape positioned relative to this one must follow it when it moves
+    const shape = shapes[index]
+    const dependent = this.dispatcher.currentEvaluatingShape
+    if (dependent) this.dispatcher.recordDependency(dependent, shape)
+    return shape
+  }
+
   VisitShapeDefaultGetter(node: AST.ShapeDefaultGetter) {
     const shape = (Interpreter.DefaultShapeAliases[node.shape] || [node.shape])[0]
     const attr = this.defaultAttrNames(shape, node.attr)[0]
@@ -1112,4 +1125,33 @@ export class Interpreter extends Visitor{
   bindingAsTable() {
     return this.binding.dumpAsTable()
   }
+}
+
+
+// `move` targets either a whole shape (a variable, or a reference such as
+// `last box`) or one of its points (`a.nw`)
+function isWholeShape(node: AST.Node) {
+  return node.type === `VariableValue` || node.type === `ShapeReference`
+}
+
+const ShapeReferenceNouns: Record<string, string> = {
+  SArc: `arc`, SBox: `box`, SCircle: `circle`, SEllipse: `ellipse`, SOval: `oval`,
+  SLine: `line`, SLabel: `label`, SGroup: `group`, SBase: `shape`,
+}
+
+function plural(count: number, noun: string) {
+  const s = noun.endsWith(`x`) ? `es` : `s`
+  return count === 1 ? `1 ${noun}` : `${count} ${noun}${s}`
+}
+
+// e.g. `there is no 4th box: only 3 boxes have been drawn so far`
+function shapeReferenceError(node: AST.ShapeReference, count: number) {
+  const noun = ShapeReferenceNouns[node.shape] ?? `shape`
+  const ref = node.fromEnd
+    ? (node.position === 1 ? `last ${noun}` : `${ordinal(node.position)} last ${noun}`)
+    : `${ordinal(node.position)} ${noun}`
+  const drawn = count === 0
+    ? `no ${plural(2, noun).slice(2)} have been drawn so far`
+    : `only ${plural(count, noun)} ${count === 1 ? `has` : `have`} been drawn so far`
+  return `there is no ${ref}: ${drawn}`
 }

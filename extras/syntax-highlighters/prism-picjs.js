@@ -25,6 +25,12 @@ export default function definePicjs(Prism) {
 
     color: /~[a-zA-Z]\w*(?:\.\w+(?:\([^)]*\))?)*/,
 
+    // last box, 2nd circle, second last line: only before a shape name
+    "shape-ref": {
+      pattern: /\b(?:(?:first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|\d+(?:st|nd|rd|th))[ \t]+(?:last[ \t]+)?|last[ \t]+)(?=(?:Arc|Box|Circle|Ellipse|Group|Label|Line|Oval|Shape|arc|box|circle|ellipse|line|oval)\b)/,
+      alias: "keyword",
+    },
+
     number: /\b\d+(?:\.\d+)?(?:[eE][+-]?\d+)?%?\b/,
 
     animation: /\b(?:draw|move|pause|rotate|set|then)\b/,
@@ -37,7 +43,7 @@ export default function definePicjs(Prism) {
 
     attribute: /\b(?:fill|stroke|stroke_width|thickness|thick|width|wid|height|ht|radius|rad|rx|ry|rotation|rot|opacity|dashed|dotted|solid|straight|smooth|stepped|step|curved|curve|length|len|align|fit|maxwidth|nodraw|font|font_family|font_size|font_style|font_weight|font_variant|font_stretch|line_height|cw|ccw|turn|take|ease)\b/,
 
-    builtin: /\b(?:sin|cos|tan|asin|acos|atan2|polar|d2r|r2d|ln|log10|push|pop|map|filter|sort|has|length)\b/,
+    builtin: /\b(?:layout|sin|cos|tan|asin|acos|atan2|polar|d2r|r2d|ln|log10|push|pop|map|filter|sort|has|length)\b/,
 
     direction: /\b(?:north|northeast|northwest|south|southeast|southwest|east|west|up|down|left|right)\b/,
 

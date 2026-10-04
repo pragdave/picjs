@@ -52,6 +52,10 @@ syn keyword picjsShape      Arc Aside Box Circle Ellipse Group Label Line Oval S
 syn keyword picjsShape      arc box circle ellipse line oval
 syn keyword picjsLayout     Face Gap Goto
 
+" References to earlier shapes: last box, 2nd circle, second last line. The
+" words are only special when a shape name follows on the same line.
+syn match   picjsShapeRef   '\v<%(%(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|\d+%(st|nd|rd|th))\s+%(last\s+)?|last\s+)\ze%(Arc|Box|Circle|Ellipse|Group|Label|Line|Oval|Shape|arc|box|circle|ellipse|line|oval)>'
+
 " Shape defaults and classes: Box.pole.fill = ..., Box .pole 20x150
 syn match   picjsClass      '\v(<(Arc|Aside|Box|Circle|Ellipse|Group|Label|Line|Oval|Skip|arc|box|circle|ellipse|line|oval))@<=(\.\h\w*)+' contains=picjsCardinal
 syn match   picjsClass      '\v(^|[[:space:](])\zs\.\h\w*'
@@ -127,6 +131,7 @@ hi def link picjsColor        Constant
 hi def link picjsColorModel   Function
 hi def link picjsShape        Type
 hi def link picjsLayout       Statement
+hi def link picjsShapeRef     Keyword
 hi def link picjsClass        Type
 hi def link picjsCardinal     Special
 hi def link picjsSelf         Special

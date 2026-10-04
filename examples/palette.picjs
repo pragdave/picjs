@@ -35,4 +35,4 @@ grid = {
 })
 }
 
-axis = Label "Theme" rot -90 .h2  at grid.w
+Label "Theme" rot -90 .h2  at grid.w

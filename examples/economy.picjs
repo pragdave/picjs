@@ -103,17 +103,17 @@ line <-
    then south until row.factor.n
    stroke blueish "Wages, profit,\ninterest" at 30% below
 
-l = line ->
+line ->
    from col.government.s + ho
    to col.households.n + ho
    stroke blueish 
-   Label "Govt. transfers" at l.c + (.7,-.2)
+Label "Govt. transfers" at last line.c + (.7,-.2)
 
-l = line <- 
+line <- 
   from col.government.s - ho
   to col.households.n - ho
   stroke greenish
-  Label "Taxes" at l.c - (.4,-.2)
+Label "Taxes" at last line.c - (.4,-.2)
 
  line ->
     from col.households.w 

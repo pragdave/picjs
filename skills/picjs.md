@@ -67,6 +67,24 @@ Pin a shape's cardinal point to a position:
 Box "X" with .nw at someBox.se
 ```
 
+### Referring to earlier shapes
+
+Refer to a shape by when it was drawn, without naming it. Counting is in the
+order shapes were drawn as the program ran (loops and functions included):
+
+```
+Box "A"
+Box "B"
+Circle at last box.s + (0, .5)        // below B
+Circle at 2nd last box.s + (0, .5)    // below A (also: second last box)
+Line -> from first circle to last circle
+last Shape                            // the last shape of any kind
+```
+
+Ordinals: `first`…`tenth`, `1st`, `2nd`, `3rd`, `4th`…, and `last`, `2nd last`, `second last`.
+The shape name must follow on the same line. Once a shape is positioned this way,
+it keeps referring to the same shape.
+
 ### Layout helpers
 
 ```

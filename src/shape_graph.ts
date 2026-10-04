@@ -62,6 +62,20 @@ export class ShapeGraph {
     return this.allShapes
   }
 
+  // The shapes of a kind drawn before `before` (or so far, if it's null), in
+  // the order they were drawn. SBase means every kind. Labels inside other
+  // shapes, and the invisible points that Goto and Skip leave, don't count.
+  shapesOfKindBefore(shapeName: string, before: Shapes.SBase | null): Shapes.SBase[] {
+    const end = before ? this.allShapes.indexOf(before) : -1
+    const drawn = end >= 0 ? this.allShapes.slice(0, end) : this.allShapes
+    const kinds = shapeName === `SLine` ? [`SLine`, `SPolyline`] : [shapeName]
+    return drawn.filter(shape =>
+      !shape.isChild() &&
+      shape.shapeName !== `SPoint` &&
+      (shapeName === `SBase` || kinds.includes(shape.shapeName))
+    )
+  }
+
   findLastOfType(shapeName: string): Shapes.SBase | undefined {
     for (let i = this.allShapes.length - 1; i >= 0; i--) {
       if (this.allShapes[i].shapeName === shapeName)

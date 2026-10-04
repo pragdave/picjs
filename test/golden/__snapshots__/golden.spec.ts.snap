@@ -1211,13 +1211,33 @@ exports[`golden output docs/guide.md #14 1`] = `
 exports[`golden output docs/guide.md #15 1`] = `
 {
   "error": undefined,
+  "height": 1.35,
+  "svg": "<svg viewBox="-0.7 -0.575 2.4 1.75" class="_myopic-1" xmlns="http://www.w3.org/2000/svg"><style>.pj-fill-sunset-b2{fill:#675478}
+.pj-fill-sunset-f2{fill:#ffffff}
+.pj-fill-sunset-b3{fill:#9e6374}
+.pj-fill-sunset-f3{fill:#ffffff}
+.pj-fill-sunset-b1{fill:#41476b}
+.pj-stroke-sunset-b1{stroke:#41476b}
+[data-theme="light"] .pj-fill-sunset-b2{fill:#a68db8}
+[data-theme="light"] .pj-fill-sunset-f2{fill:#1a1a2e}
+[data-theme="light"] .pj-fill-sunset-b3{fill:#d4969a}
+[data-theme="light"] .pj-fill-sunset-f3{fill:#2e1a1a}
+[data-theme="light"] .pj-fill-sunset-b1{fill:#8b90b8}
+[data-theme="light"] .pj-stroke-sunset-b1{stroke:#8b90b8}</style><g data-jp-id="SBox-1"><rect width="1" height="0.75" stroke="none" stroke-width="0.015" rx="0.06" ry="0.06" x="-0.5" y="-0.375" class="pj-fill-sunset-b2" data-jp-id="SBox-1"></rect><text font-family="Roboto, sans-serif" font-size="0.14" font-style="normal" font-variant="normal" font-weight="normal" font-stretch="normal" x="-0.032200000000000006" y="-0.084" class="pj-fill-sunset-f2" dominant-baseline="text-before-edge" data-jp-id="SLabel-2">A</text></g><g data-jp-id="SBox-3"><rect width="1" height="0.75" stroke="none" stroke-width="0.015" rx="0.06" ry="0.06" x="0.5" y="-0.375" class="pj-fill-sunset-b3" data-jp-id="SBox-3"></rect><text font-family="Roboto, sans-serif" font-size="0.14" font-style="normal" font-variant="normal" font-weight="normal" font-stretch="normal" x="0.9678" y="-0.084" class="pj-fill-sunset-f3" dominant-baseline="text-before-edge" data-jp-id="SLabel-4">B</text></g><circle r="0.2" stroke="none" stroke-width="0.015" cx="1" cy="0.775" class="pj-fill-sunset-b1" data-jp-id="SCircle-5"></circle><circle r="0.2" stroke="none" stroke-width="0.015" cx="0" cy="0.775" class="pj-fill-sunset-b1" data-jp-id="SCircle-6"></circle><g data-jp-id="SLine-7"><path stroke-width="0.04" x="0.5" y="0.775" d="M 0.2 0.775 L 0.5840000000000001 0.775" fill="none" class="pj-stroke-sunset-b1"></path><path d="M 0.5840000000000001 0.7150000000000001 L 0.74 0.775 L 0.5840000000000001 0.835 Z" stroke="none" class="pj-fill-sunset-b1"></path></g></svg>",
+  "width": 2,
+}
+`;
+
+exports[`golden output docs/guide.md #16 1`] = `
+{
+  "error": undefined,
   "height": 1,
   "svg": "<svg viewBox="-0.7 -0.7 3.4 1.4" class="_myopic-1" xmlns="http://www.w3.org/2000/svg"><rect width="1" height="0.75" fill="#fa8072" stroke="#b22222" stroke-width="0.015" rx="0.06" ry="0.06" x="-0.5" y="-0.375" data-jp-id="SBox-1"></rect><g data-jp-id="SLine-2"><path stroke="#008000" stroke-width="0.04" x="1" y="0" d="M 0.5 0 L 1.5 0" fill="none"></path></g><circle r="0.5" fill="#ffc0cb" stroke="#800080" stroke-width="0.015" cx="2" cy="6.123233995736766e-17" data-jp-id="SCircle-3"></circle></svg>",
   "width": 3,
 }
 `;
 
-exports[`golden output docs/guide.md #16 1`] = `
+exports[`golden output docs/guide.md #17 1`] = `
 {
   "error": undefined,
   "height": 1.125,
@@ -1233,7 +1253,7 @@ exports[`golden output docs/guide.md #16 1`] = `
 }
 `;
 
-exports[`golden output docs/guide.md #17 1`] = `
+exports[`golden output docs/guide.md #18 1`] = `
 {
   "error": undefined,
   "height": 0.75,
@@ -1242,7 +1262,7 @@ exports[`golden output docs/guide.md #17 1`] = `
 }
 `;
 
-exports[`golden output docs/guide.md #18 1`] = `
+exports[`golden output docs/guide.md #19 1`] = `
 {
   "error": undefined,
   "height": 10.3,
@@ -1254,7 +1274,7 @@ exports[`golden output docs/guide.md #18 1`] = `
 
 exports[`golden output docs/index.md #1 1`] = `
 {
-  "error": "Expected "(", "@", "draw", "if", "move", "pause", "rotate", "set", group, identifier, shape, space, start of expression, or term but "<" found.",
+  "error": "Expected "(", "@", "draw", "if", "move", "pause", "rotate", "set", group, identifier, shape, shape reference, space, start of expression, or term but "<" found.",
   "height": 0,
   "svg": "",
   "width": 0,

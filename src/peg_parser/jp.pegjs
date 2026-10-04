@@ -427,6 +427,7 @@ LValue
 BaseLValue
   = "(" _ expression:Expression _ ")" 
     { return expression }
+  / ShapeReference
   / VariableValue
 
 
@@ -618,7 +619,8 @@ FunctionDefOrPrimary
 // -------------------------------------------------------------------- Primary
 
 Primary
-  = Number
+  = ShapeReference
+  / Number
   / Boolean
   / Color
   / Position
@@ -629,6 +631,35 @@ Primary
   / VariableValue
   / ArrayOrRange
   / "(" _ expression:Expression _ ")" { return expression; }
+
+// "last box", "2nd circle", "second last line": a shape drawn earlier, counted
+// in the order shapes were drawn. The ordinal words are not reserved: they
+// only mean this when a shape name follows on the same line.
+ShapeReference "shape reference"
+  = position:Ordinal SameLineSpace fromEnd:("last" !IdentifierPart SameLineSpace)? shape:ShapeReferenceName
+    { return ast({ type: "ShapeReference", shape, position, fromEnd: !!fromEnd }) }
+  / "last" !IdentifierPart SameLineSpace shape:ShapeReferenceName
+    { return ast({ type: "ShapeReference", shape, position: 1, fromEnd: true }) }
+
+Ordinal
+  = digits:$[0-9]+ ("st" / "nd" / "rd" / "th") !IdentifierPart { return parseInt(digits, 10) }
+  / "first"   !IdentifierPart { return 1 }
+  / "second"  !IdentifierPart { return 2 }
+  / "third"   !IdentifierPart { return 3 }
+  / "fourth"  !IdentifierPart { return 4 }
+  / "fifth"   !IdentifierPart { return 5 }
+  / "sixth"   !IdentifierPart { return 6 }
+  / "seventh" !IdentifierPart { return 7 }
+  / "eighth"  !IdentifierPart { return 8 }
+  / "ninth"   !IdentifierPart { return 9 }
+  / "tenth"   !IdentifierPart { return 10 }
+
+// The shapes that can be referred to: ShapeName without Skip, which draws nothing
+ShapeReferenceName
+  = shape:( Arc / Box / Circle / Ellipse / Oval / Line / Label / Group )
+    { return "S" + shape }
+  / "Shape" !IdentifierPart
+    { return "SBase" }
 
 ShapeDefaultGetter
   = shape:ShapeName klass:SEClass "." attr:AttrName {

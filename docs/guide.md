@@ -167,6 +167,24 @@ circle radius .1 at a.se + (b.nw-a.se) * 50%
 circle radius .1 at a.se + (b.nw-a.se) * 75%
 ~~~
 
+### Referring to Earlier Shapes
+
+You don't have to name a shape to position something relative to it. `last box` is the most
+recently drawn box, `2nd last box` (or `second last box`) the one before it, and `first box` (or
+`1st box`) the first. Any kind of shape works, as does `Shape` for a shape of any kind.
+
+~~~ picjs example
+box "A" fill ~b2
+box "B" fill ~b3
+circle rad .2 at last box.s + (0, .4)
+circle rad .2 at 2nd last box.s + (0, .4)
+line -> from last circle to 2nd last circle
+~~~
+
+"Last" means the last one drawn when the program runs, so shapes drawn in loops and functions
+count, in the order they were drawn. A shape positioned this way keeps referring to the same
+shape, even after more are drawn.
+
 ## Colors
 
 Most shapes have fill colors and stroke colors (lines only have stroke colors, and labels only
