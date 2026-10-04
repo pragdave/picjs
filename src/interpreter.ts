@@ -1047,28 +1047,33 @@ export class Interpreter extends Visitor{
 
 
   callFunction(callee: TA, args: TA[]) {
-    if (callee instanceof TFunction)  {
-      if (args.length < callee.formals.length) {
-        const msg = `function called with ${args.length} parameters, ` +
-          `but it takes ${callee.formals.length} parameter`
-        throw new RTE(msg)
-      }
-      args = args.slice(0, callee.formals.length)
-
-      const myBinding = this.binding
-      this.binding = callee.binding.push()
-      callee.formals.forEach((name, i) => {
-        this.binding.set_local_variable(name.name, args[i])
-      })
-
-      const result = this.accept(callee.body)
-      this.binding = myBinding
-      return result
-    }
+    if (callee instanceof TFunction)
+      return this.callUserFunction(callee, args)
 
     if (callee instanceof TNative) {
       callee.acceptableParameters(args)
       return callee.value(this, ...args)
+    }
+
+    throw new RTE(`You can only call a function, but this is ${callee?.toNative?.() ?? callee}`)
+  }
+
+  private callUserFunction(callee: TFunction, args: TA[]) {
+    if (args.length < callee.formals.length) {
+      throw new RTE(`function called with ${args.length} parameters, ` +
+                    `but it takes ${callee.formals.length} parameter`)
+    }
+
+    const callersBinding = this.binding
+    this.binding = callee.binding.push()
+    try {
+      callee.formals.forEach((name, i) => {
+        this.binding.set_local_variable(name.name, args[i])
+      })
+      return this.accept(callee.body)
+    }
+    finally {
+      this.binding = callersBinding
     }
   }
 

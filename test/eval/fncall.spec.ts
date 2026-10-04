@@ -35,5 +35,13 @@ describe(`function call`, () => {
     t(`f = (a b c) => a + b * c  f(1, 2, 3)`, n(7))
 
   })
-})
 
+  describe(`of something that isn't a function`, () => {
+    it.each([
+      [`a number`,          `x = 3  x()`,        /only call a function.*3/],
+      [`a shape attribute`, `b = Box  b.fill()`, /only call a function/],
+    ])(`(%s) is an error`, (_name, src, message) => {
+      expect(() => valueOf(src)).toThrow(message)
+    })
+  })
+})

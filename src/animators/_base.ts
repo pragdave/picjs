@@ -37,6 +37,10 @@ export abstract class AnimatorBase {
     if (!(this.params.ease in Easing)) {
       throw new RTE(`The "ease" parameter must be one of ${Object.keys(Easing).join(`, `)}`)
     }
+    const take = this.params.take
+    if (typeof take !== `number` || !(take >= 0)) {
+      throw new RTE(`The "take" parameter must be a number of seconds, 0 or more, but it is ${take}`)
+    }
   }
 
   duration() {
