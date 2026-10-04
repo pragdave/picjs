@@ -1,5 +1,8 @@
 import { test, expect } from '@playwright/test'
 
+// Code run in the page imports the library from the dev server by URL
+type RenderModule = typeof import("../../src/render-to-string.js")
+
 // Regression test for GitHub issue #6: a Label positioned with `align .e with
 // .e at <point>` gets an outer <text> x/text-anchor that doesn't match where
 // its <tspan> children actually render (each tspan carries its own explicit
@@ -39,7 +42,7 @@ test.describe('label viewBox with align + with/at positioning - renderAll', () =
 test.describe('label viewBox with align + with/at positioning - renderToString', () => {
   test('viewBox is not inflated by the label\'s phantom outer <text> x', async ({ page }) => {
     const result = await page.evaluate(async (src) => {
-      const { renderToStringAsync } = await import('/src/render-to-string.ts')
+      const { renderToStringAsync }: RenderModule = await import('/src/render-to-string.ts' as string)
       return renderToStringAsync(src, { includeSource: false })
     }, DIAGRAM)
 
@@ -61,7 +64,7 @@ async function viewBoxHeight(page: any, src: string, useSsr: boolean) {
   return page.evaluate(async ({ src, useSsr }: { src: string, useSsr: boolean }) => {
     let vb: string
     if (useSsr) {
-      const { renderToStringAsync } = await import('/src/render-to-string.ts')
+      const { renderToStringAsync }: RenderModule = await import('/src/render-to-string.ts' as string)
       const result = await renderToStringAsync(src, { includeSource: false })
       vb = result.svg.match(/<svg[^>]*viewBox="([^"]*)"/)![1]
     } else {

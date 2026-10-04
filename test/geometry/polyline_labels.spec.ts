@@ -55,24 +55,24 @@ describe(`Polyline label positioning — simple L-shape`, () => {
     expect(labels).toHaveLength(1)
     const label = labels[0]
     // 50% of an L-shaped path with equal segments is exactly at the corner (10, 0)
-    expect(label.anchorX).toBeCloseTo(10, 0)
-    expect(label.anchorY).toBeCloseTo(0, 0)
+    expect(label.anchor.x).toBeCloseTo(10, 0)
+    expect(label.anchor.y).toBeCloseTo(0, 0)
   })
 
   it(`label at 25% is midpoint of first segment`, () => {
     const { labels } = polylineAndLabels(
       `line from (0, 0) then (10, 0) then (10, 10) "quarter" at 25%`
     )
-    expect(labels[0].anchorX).toBeCloseTo(5, 0)
-    expect(labels[0].anchorY).toBeCloseTo(0, 0)
+    expect(labels[0].anchor.x).toBeCloseTo(5, 0)
+    expect(labels[0].anchor.y).toBeCloseTo(0, 0)
   })
 
   it(`label at 75% is midpoint of second segment`, () => {
     const { labels } = polylineAndLabels(
       `line from (0, 0) then (10, 0) then (10, 10) "three-quarter" at 75%`
     )
-    expect(labels[0].anchorX).toBeCloseTo(10, 0)
-    expect(labels[0].anchorY).toBeCloseTo(5, 0)
+    expect(labels[0].anchor.x).toBeCloseTo(10, 0)
+    expect(labels[0].anchor.y).toBeCloseTo(5, 0)
   })
 })
 
@@ -86,8 +86,8 @@ describe(`Polyline label positioning — horizontal`, () => {
 
   it(`label at 50% is at the midpoint of the path`, () => {
     const { labels } = polylineAndLabels(src)
-    expect(labels[0].anchorX).toBeCloseTo(5, 0)
-    expect(labels[0].anchorY).toBeCloseTo(0, 0)
+    expect(labels[0].anchor.x).toBeCloseTo(5, 0)
+    expect(labels[0].anchor.y).toBeCloseTo(0, 0)
   })
 })
 
@@ -108,9 +108,9 @@ describe(`Polyline label positioning — above/below`, () => {
     const above = labels[0]
     // For a horizontal line, "above" means lower Y value (y-up after conversion)
     // Both labels should be near x=10 (midpoint of path)
-    expect(above.anchorX).toBeCloseTo(10, 0)
+    expect(above.anchor.x).toBeCloseTo(10, 0)
     // above should be offset from y=0
-    expect(above.anchorY).not.toBeCloseTo(0, 1)
+    expect(above.anchor.y).not.toBeCloseTo(0, 1)
   })
 
   it(`below label is on opposite side from above label`, () => {
@@ -118,9 +118,9 @@ describe(`Polyline label positioning — above/below`, () => {
     const above = labels[0]
     const below = labels[1]
     // Both at same x
-    expect(above.anchorX).toBeCloseTo(below.anchorX, 0)
+    expect(above.anchor.x).toBeCloseTo(below.anchor.x, 0)
     // But on opposite sides of the path (y=0)
-    expect(above.anchorY * below.anchorY).toBeLessThanOrEqual(0)
+    expect(above.anchor.y * below.anchor.y).toBeLessThanOrEqual(0)
   })
 })
 
@@ -131,7 +131,7 @@ describe(`Polyline label positioning — label is near the path`, () => {
       `line from (0, 0) then (10, 0) then (10, 10) "on path"`
     )
     const label = labels[0]
-    const dist = distanceToPath(label.anchorX, label.anchorY, poly.allPoints)
+    const dist = distanceToPath(label.anchor.x, label.anchor.y, poly.allPoints)
     expect(dist).toBeLessThan(0.5)
     expect(dist).toBeGreaterThan(0.01)
   })
@@ -141,7 +141,7 @@ describe(`Polyline label positioning — label is near the path`, () => {
       `line from (0, 0) then (10, 0) then (10, 10) "above" above "below" below`
     )
     for (const label of labels) {
-      const dist = distanceToPath(label.anchorX, label.anchorY, poly.allPoints)
+      const dist = distanceToPath(label.anchor.x, label.anchor.y, poly.allPoints)
       // Should be within a reasonable offset (stroke_width + font_size)
       expect(dist).toBeLessThan(1)
     }
@@ -165,7 +165,7 @@ describe(`Polyline label positioning — L-shape with directional construction`,
     const label = labels[0]
 
     // Single label defaults to "above" — offset from path but not far
-    const dist = distanceToPath(label.anchorX, label.anchorY, poly.allPoints)
+    const dist = distanceToPath(label.anchor.x, label.anchor.y, poly.allPoints)
     expect(dist).toBeLessThan(0.5)
   })
 
@@ -177,7 +177,7 @@ describe(`Polyline label positioning — L-shape with directional construction`,
     `
     const { poly, labels } = polylineAndLabels(src)
     const label = labels[0]
-    const dist = distanceToPath(label.anchorX, label.anchorY, poly.allPoints)
+    const dist = distanceToPath(label.anchor.x, label.anchor.y, poly.allPoints)
     expect(dist).toBeLessThan(1) // offset by stroke + font, not "way off"
   })
 })
@@ -191,32 +191,32 @@ describe(`Polyline label at specific percentages`, () => {
     const { labels } = polylineAndLabels(
       `line from (0, 0) then (0, 10) then (10, 10) then (10, 0) "start" at 0%`
     )
-    expect(labels[0].anchorX).toBeCloseTo(0, 0)
-    expect(labels[0].anchorY).toBeCloseTo(0, 0)
+    expect(labels[0].anchor.x).toBeCloseTo(0, 0)
+    expect(labels[0].anchor.y).toBeCloseTo(0, 0)
   })
 
   it(`at 100% is at end`, () => {
     const { labels } = polylineAndLabels(
       `line from (0, 0) then (0, 10) then (10, 10) then (10, 0) "end" at 100%`
     )
-    expect(labels[0].anchorX).toBeCloseTo(10, 0)
-    expect(labels[0].anchorY).toBeCloseTo(0, 0)
+    expect(labels[0].anchor.x).toBeCloseTo(10, 0)
+    expect(labels[0].anchor.y).toBeCloseTo(0, 0)
   })
 
   it(`at 33% is at first corner`, () => {
     const { labels } = polylineAndLabels(
       `line from (0, 0) then (0, 10) then (10, 10) then (10, 0) "corner1" at 33.33%`
     )
-    expect(labels[0].anchorX).toBeCloseTo(0, 0)
-    expect(labels[0].anchorY).toBeCloseTo(10, 0)
+    expect(labels[0].anchor.x).toBeCloseTo(0, 0)
+    expect(labels[0].anchor.y).toBeCloseTo(10, 0)
   })
 
   it(`at 67% is at second corner`, () => {
     const { labels } = polylineAndLabels(
       `line from (0, 0) then (0, 10) then (10, 10) then (10, 0) "corner2" at 66.67%`
     )
-    expect(labels[0].anchorX).toBeCloseTo(10, 0)
-    expect(labels[0].anchorY).toBeCloseTo(10, 0)
+    expect(labels[0].anchor.x).toBeCloseTo(10, 0)
+    expect(labels[0].anchor.y).toBeCloseTo(10, 0)
   })
 
   it(`at 60% is between first and second corners`, () => {
@@ -227,8 +227,8 @@ describe(`Polyline label at specific percentages`, () => {
     // 60% of 30 = 18 units along path
     // First segment: 0–10, second: 10–20, third: 20–30
     // 18 units = 8 units into second segment → (8, 10)
-    expect(label.anchorX).toBeCloseTo(8, 0)
-    expect(label.anchorY).toBeCloseTo(10, 0)
+    expect(label.anchor.x).toBeCloseTo(8, 0)
+    expect(label.anchor.y).toBeCloseTo(10, 0)
   })
 })
 
@@ -248,8 +248,8 @@ describe(`Polyline label — directional "until even with" construction`, () => 
     const { labels } = polylineAndLabels(src)
     expect(labels).toHaveLength(1)
     const label = labels[0]
-    expect(Number.isNaN(label.anchorX)).toBe(false)
-    expect(Number.isNaN(label.anchorY)).toBe(false)
+    expect(Number.isNaN(label.anchor.x)).toBe(false)
+    expect(Number.isNaN(label.anchor.y)).toBe(false)
   })
 
   it(`label x/y are finite numbers`, () => {
@@ -262,8 +262,8 @@ describe(`Polyline label — directional "until even with" construction`, () => 
               "label" at 50%
     `
     const { labels } = polylineAndLabels(src)
-    expect(Number.isFinite(labels[0].anchorX)).toBe(true)
-    expect(Number.isFinite(labels[0].anchorY)).toBe(true)
+    expect(Number.isFinite(labels[0].anchor.x)).toBe(true)
+    expect(Number.isFinite(labels[0].anchor.y)).toBe(true)
   })
 
   it(`label is near the resolved path`, () => {
@@ -277,7 +277,7 @@ describe(`Polyline label — directional "until even with" construction`, () => 
     `
     const { poly, labels } = polylineAndLabels(src)
     const label = labels[0]
-    const dist = distanceToPath(label.anchorX, label.anchorY, poly.allPoints)
+    const dist = distanceToPath(label.anchor.x, label.anchor.y, poly.allPoints)
     expect(dist).toBeLessThan(0.5)
   })
 
@@ -291,8 +291,8 @@ describe(`Polyline label — directional "until even with" construction`, () => 
            "label"
     `
     const { labels } = polylineAndLabels(src)
-    expect(Number.isNaN(labels[0].anchorX)).toBe(false)
-    expect(Number.isNaN(labels[0].anchorY)).toBe(false)
+    expect(Number.isNaN(labels[0].anchor.x)).toBe(false)
+    expect(Number.isNaN(labels[0].anchor.y)).toBe(false)
   })
 })
 
@@ -325,10 +325,10 @@ describe(`Polyline label — Group member references`, () => {
     const { labels } = polylineAndLabels(src)
     expect(labels).toHaveLength(1)
     const label = labels[0]
-    expect(Number.isNaN(label.anchorX)).toBe(false)
-    expect(Number.isNaN(label.anchorY)).toBe(false)
-    expect(Number.isFinite(label.anchorX)).toBe(true)
-    expect(Number.isFinite(label.anchorY)).toBe(true)
+    expect(Number.isNaN(label.anchor.x)).toBe(false)
+    expect(Number.isNaN(label.anchor.y)).toBe(false)
+    expect(Number.isFinite(label.anchor.x)).toBe(true)
+    expect(Number.isFinite(label.anchor.y)).toBe(true)
   })
 
   it(`label is near the path with Group members`, () => {
@@ -340,7 +340,7 @@ describe(`Polyline label — Group member references`, () => {
     `
     const { poly, labels } = polylineAndLabels(src)
     const label = labels[0]
-    const dist = distanceToPath(label.anchorX, label.anchorY, poly.allPoints)
+    const dist = distanceToPath(label.anchor.x, label.anchor.y, poly.allPoints)
     expect(dist).toBeLessThan(0.5)
   })
 
@@ -355,19 +355,19 @@ describe(`Polyline label — Group member references`, () => {
     const label = labels[0]
 
     // Record positions after initial layout
-    expect(Number.isFinite(label.anchorX)).toBe(true)
-    expect(Number.isFinite(label.anchorY)).toBe(true)
+    expect(Number.isFinite(label.anchor.x)).toBe(true)
+    expect(Number.isFinite(label.anchor.y)).toBe(true)
 
     // Simulate the render pass: reposition the polyline then the label
     d.positionPolyline(poly)
     d.constrainedLayout(label)
 
     // Label should still be finite
-    expect(Number.isFinite(label.anchorX)).toBe(true)
-    expect(Number.isFinite(label.anchorY)).toBe(true)
+    expect(Number.isFinite(label.anchor.x)).toBe(true)
+    expect(Number.isFinite(label.anchor.y)).toBe(true)
 
     // And near the path
-    const dist = distanceToPath(label.anchorX, label.anchorY, poly.allPoints)
+    const dist = distanceToPath(label.anchor.x, label.anchor.y, poly.allPoints)
     expect(dist).toBeLessThan(1)
   })
 
@@ -400,7 +400,7 @@ describe(`Polyline label — complex multi-segment`, () => {
     const { poly, labels } = polylineAndLabels(src)
     const label = labels[0]
     // Label should be near the actual path, not at some garbage coordinate
-    const dist = distanceToPath(label.anchorX, label.anchorY, poly.allPoints)
+    const dist = distanceToPath(label.anchor.x, label.anchor.y, poly.allPoints)
     expect(dist).toBeLessThan(1)
   })
 
@@ -412,14 +412,14 @@ describe(`Polyline label — complex multi-segment`, () => {
     expect(labels).toHaveLength(2)
 
     // First label near start of path
-    expect(labels[0].anchorX).toBeLessThan(5)
+    expect(labels[0].anchor.x).toBeLessThan(5)
 
     // Second label near end of path
-    expect(labels[1].anchorY).toBeGreaterThan(5)
+    expect(labels[1].anchor.y).toBeGreaterThan(5)
 
     // Labels should be at different positions
-    const dx = labels[0].anchorX - labels[1].anchorX
-    const dy = labels[0].anchorY - labels[1].anchorY
+    const dx = labels[0].anchor.x - labels[1].anchor.x
+    const dy = labels[0].anchor.y - labels[1].anchor.y
     expect(Math.hypot(dx, dy)).toBeGreaterThan(1)
   })
 })

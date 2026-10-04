@@ -46,20 +46,18 @@ export class TList extends TBase<TA[]> {
     return this.indexableGet(offset)
   }
 
-  setAtIndex(index: any | number, value: any) {
-    if (index instanceof TString) {
-      this.setAtAttr(index.value, value)
-      return
-    }
+  setAtIndex(index: TA, value: TA) {
+    if (index instanceof TString)
+      return this.setAtAttr(index.value, value)
 
-    const i = (index instanceof TNumber) ? index.value : index
-
+    const i = this.indexNumber(index)
     if (i < 0) {
       throw new RTE(`List index ${i} is less than zero`)
     }
 
     this.value.length = Math.max(this.value.length, i + 1)
     this.value[i] = value
+    return this
   }
 
   // computed attributes
@@ -114,21 +112,24 @@ export class TList extends TBase<TA[]> {
     return new TList(result)
   }
 
-  indexableGet(offset: any) {
-    if (! (offset instanceof TNumber)) {
-      throw `attempt to index with ${offset.value}`
-    }
-    let index = offset.value
+  // Negative indexes count back from the end
+  indexableGet(offset: TA) {
+    const requested = this.indexNumber(offset)
     const len = this.value.length
-
-    if (index < 0)
-      index = len + index
+    const index = requested < 0 ? len + requested : requested
 
     if (index < 0 || index >= len)
-      throw `index ${index} outside list bounds (0..${len - 1})`
+      throw new RTE(`List index ${requested} is outside a list of ${len} item${len === 1 ? `` : `s`}`)
 
     return this.value[index]
   }
+
+  private indexNumber(index: TA) {
+    if (!(index instanceof TNumber))
+      throw new RTE(`A list index must be a number, but it is ${index?.toNative?.() ?? index}`)
+    return index.value
+  }
+
   toNative() {
     return this.value.map(v => v?.toNative())
   }

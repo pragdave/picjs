@@ -37,4 +37,22 @@ describe(`animation parameters`, () => {
         .toThrow(/"ease" parameter must be one of/)
     })
   })
+
+  describe(`what move moves`, () => {
+    it.each([
+      [`a shape`,               `b = Box\nmove b to (1, 1)`],
+      [`a shape in brackets`,   `b = Box\nmove (b) to (1, 1)`],
+      [`a point on a shape`,    `b = Box\nmove b.nw to (1, 1)`],
+    ])(`can be %s`, (_name, src) => {
+      expect(() => runProgram(src)).not.toThrow()
+    })
+
+    it.each([
+      [`a number`,              `move 3 to (1, 1)`,                 /"move" needs a shape, or a point on one/],
+      [`a list`,                `b = Box\nmove [b] to (1, 1)`,      /"move" needs a shape, or a point on one/],
+      [`an attribute`,          `b = Box\nmove b.fill to (1, 1)`,   /"fill" is not a point on the shape.*nw/],
+    ])(`can't be %s`, (_name, src, message) => {
+      expect(() => runProgram(src)).toThrow(message)
+    })
+  })
 })

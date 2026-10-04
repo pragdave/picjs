@@ -55,9 +55,8 @@ export const jpLanguage = StreamLanguage.define({
     if (stream.match("->") || stream.match("×")) return "operator"
 
     // Words — keywords and identifiers
-    const word = stream.match(/^[A-Za-z_][A-Za-z0-9_]*/)
-    if (word) {
-      const w = word[0]
+    if (stream.match(/^[A-Za-z_][A-Za-z0-9_]*/)) {
+      const w = stream.current()
       if (shapes.has(w))    return "shapeName"
       if (animVerbs.has(w)) return "animVerb"
       if (controlKw.has(w)) return "controlKw"

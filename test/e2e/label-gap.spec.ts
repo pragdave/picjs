@@ -1,5 +1,8 @@
 import { test, expect } from '@playwright/test'
 
+// Code run in the page imports the library from the dev server by URL
+type RenderModule = typeof import("../../src/render-to-string.js")
+
 const DIAGRAM = `Box "Start"
 -> "Yes" Box "Middle"
 -> "No" Box "End"`
@@ -59,7 +62,7 @@ test.describe('line label gap - renderAll', () => {
 test.describe('line label gap - renderToString', () => {
   test('labels on lines do not overlap the line path', async ({ page }) => {
     const result = await page.evaluate(async (src) => {
-      const { renderToStringAsync } = await import('/src/render-to-string.ts')
+      const { renderToStringAsync }: RenderModule = await import('/src/render-to-string.ts' as string)
       const strResult = await renderToStringAsync(src, { includeSource: false })
       if (strResult.error) return { issues: [strResult.error] }
 

@@ -51,8 +51,8 @@ describe(`groups`, () => {
       expect(group).toBeDefined()
       expect(group.width).toBeGreaterThan(0)
       // center should be between the two boxes
-      expect(group.anchorX).toBe(2)
-      expect(group.anchorY).toBe(0)
+      expect(group.anchor.x).toBe(2)
+      expect(group.anchor.y).toBe(0)
     })
 
     it(`bare { } creates a group without Group keyword`, () => {
@@ -66,7 +66,7 @@ describe(`groups`, () => {
       const group = shapes.find(s => s instanceof SGroup) as SGroup
       expect(group).toBeDefined()
       expect(group.groupChildren.length).toBe(2)
-      expect(group.anchorX).toBe(2)
+      expect(group.anchor.x).toBe(2)
     })
 
     it(`bare { } supports with constraint`, () => {
@@ -141,9 +141,9 @@ describe(`groups`, () => {
       const groups = shapes.filter(s => s instanceof SGroup) as SGroup[]
       expect(groups).toHaveLength(2)
       // Both groups should be centered on the same x
-      expect(groups[1].anchorX).toBeCloseTo(groups[0].anchorX, 1)
+      expect(groups[1].anchor.x).toBeCloseTo(groups[0].anchor.x, 1)
       // Second group should be below the first
-      expect(groups[1].anchorY).toBeGreaterThan(groups[0].anchorY)
+      expect(groups[1].anchor.y).toBeGreaterThan(groups[0].anchor.y)
     })
   })
 
@@ -162,7 +162,7 @@ describe(`groups`, () => {
       const boxes = shapes.filter(s => s.shapeName === 'SBox')
       // Third box should have flowed from the group in the original direction (right, angle 0)
       // not in the group's direction (down, angle 90)
-      expect(boxes[2].anchorY).toBeCloseTo(0, 1)
+      expect(boxes[2].anchor.y).toBeCloseTo(0, 1)
     })
   })
 
@@ -267,7 +267,7 @@ describe(`groups`, () => {
 
       // Children store LOCAL coords — relative spacing preserved
       const boxes = group.groupChildren
-      expect(boxes[1].anchorX! - boxes[0].anchorX!).toBeCloseTo(2, 1)
+      expect(boxes[1].anchor.x! - boxes[0].anchor.x!).toBeCloseTo(2, 1)
 
       // Absolute positions should be far from origin
       const abs0 = group.childAbsolutePosition(boxes[0])
@@ -327,11 +327,11 @@ describe(`groups`, () => {
       const boxes = group.groupChildren
 
       // Group center at (20, 20)
-      expect(group.anchorX).toBeCloseTo(20, 1)
-      expect(group.anchorY).toBeCloseTo(20, 1)
+      expect(group.anchor.x).toBeCloseTo(20, 1)
+      expect(group.anchor.y).toBeCloseTo(20, 1)
 
       // Children's LOCAL coords: 4 apart (centered on 0)
-      expect(boxes[1].anchorX! - boxes[0].anchorX!).toBeCloseTo(4, 1)
+      expect(boxes[1].anchor.x! - boxes[0].anchor.x!).toBeCloseTo(4, 1)
 
       // Absolute positions should be 18 and 22
       const abs0 = group.childAbsolutePosition(boxes[0])

@@ -1,5 +1,6 @@
 import { valueOf } from "../helpers/eval.js"
 import { TA } from "../../src/types.js"
+import { RTE } from "../../src/runtime_error.js"
 
 function t(ip: string, expected: number | number[]) {
   const result = valueOf(ip)
@@ -82,6 +83,17 @@ describe(`lists`, () => {
   describe(`out-of-bounds index throws`, () => {
     it(`a = [] then a[1] throws`, () => {
       expect(() => valueOf(`a = []\na[1]`)).toThrow()
+    })
+  })
+
+  describe(`indexing errors`, () => {
+    it.each([
+      [`past the end`,         `[1, 2][5]`,    /index 5 is outside a list of 2 items/],
+      [`past the start`,       `[1, 2][-3]`,   /index -3 is outside a list of 2 items/],
+      [`with a non-number`,    `[1, 2][~red]`, /index must be a number.*#ff0000/],
+    ])(`%s is a runtime error`, (_name, src, message) => {
+      expect(() => valueOf(src)).toThrow(RTE)
+      expect(() => valueOf(src)).toThrow(message)
     })
   })
 })

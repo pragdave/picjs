@@ -15,7 +15,16 @@ export type ProcessedWithConstraint =  {
   targetAsShapeObject: SBase,
 }
 
-export type WithConstraint = AST.ASTWithConstraint | ProcessedWithConstraint
+// A label positioned along its line
+export type LineLabelConstraint = {
+  type: `LineLabelConstraint`,
+  cardinal: Cardinals,
+  parentShape: SBase,
+  pathPercent: number,
+  side: string,
+}
+
+export type WithConstraint = AST.ASTWithConstraint | ProcessedWithConstraint | LineLabelConstraint
 
 export const CardinalAttributes = new Set([ `c`, `n`, `ne`, `e`, `se`, `s`, `sw`, `w`, `nw` ])
 
@@ -220,8 +229,7 @@ export class SBase extends TBase<null> {
   }
 
   requiredPosition(): RenderParameters {
-    if (this.anchorX === null || this.anchorY === null)
-      throw new Error(`render called by anchor not set`)
+    const { x, y } = this.anchor
 
     const rc =
       this.rotationCenter
@@ -230,8 +238,8 @@ export class SBase extends TBase<null> {
 
         return {
           cardinal: `c`,
-          x: this.anchorX,
-          y: this.anchorY,
+          x,
+          y,
           nw: this.nw,
           width: this.width,
           height: this.height,
@@ -257,7 +265,7 @@ export class SBase extends TBase<null> {
   }
 
   // Create a constraint that positions label along path with perpendicular offset
-  protected createLineLabelConstraint(pathPercent: number, side: string): WithConstraint {
+  protected createLineLabelConstraint(pathPercent: number, side: string): LineLabelConstraint {
     return {
       type: `LineLabelConstraint`,
       cardinal: `c`,
@@ -381,6 +389,13 @@ export class SBase extends TBase<null> {
   get x() { return this.anchorX }
   get y() { return this.anchorY }
 
+  // The anchor point, once the shape has been positioned
+  get anchor(): XY {
+    if (this.anchorX === null || this.anchorY === null)
+      throw new Error(`internal error: a ${this.shapeName} was used before it was positioned`)
+    return { x: this.anchorX, y: this.anchorY }
+  }
+
   get width() { return this.params.width }
   get height() { return this.params.height }
 
@@ -437,10 +452,10 @@ export class SBase extends TBase<null> {
   }
 
   corner(cardinal: Cardinals) {
-    this.checkAnchorSet()
+    const anchor = this.anchor
     const [dx, dy] = this.getCardinalOffsetsFromAnchor(cardinal)
-    let x = (this.anchorX || 0) + dx
-    let y = (this.anchorY || 0) + dy
+    let x = anchor.x + dx
+    let y = anchor.y + dy
 
     // If this shape is in a group, transform from local to absolute coordinates
     if (this.parentGroup) {
@@ -622,11 +637,6 @@ export class SBase extends TBase<null> {
 
   moved() {
     return this.hasMoved
-  }
-
-  checkAnchorSet() {
-    if (this.anchorX === null || this.anchorY === null)
-      throw new Error(`shape anchor not set`)
   }
 
   // this has to be an AST tree, because we need to evaluate it dynamically 

@@ -23,22 +23,24 @@ export interface RenderOptions {
   themeSelector?: string
 }
 
+// What rendering needs. The modules are loaded lazily (see loadDeps), or
+// injected by the library's entry point, so only their types are imported.
 interface Deps {
-  parseToAST: any
-  ParseStatus: any
-  Dispatcher: any
-  pegParse: any
-  nullLogger: any
-  calculateBoundingBox: any
-  viewBoxFromBounds: any
-  DEFAULT_BOUNDS: any
-  unionBounds: any
-  resetTheme: any
-  applyPaletteToTheme: any
-  getDarkThemeValue: any
-  Palette: any
-  computeSlotColors: any
-  generateCSS: any
+  parseToAST:           typeof import("./parser.js").parseToAST
+  ParseStatus:          typeof import("./parser.js").ParseStatus
+  Dispatcher:           typeof import("./dispatcher.js").Dispatcher
+  pegParse:             typeof import("./peg_parser/jp.js").parse
+  nullLogger:           typeof import("./render-utils.js").nullLogger
+  calculateBoundingBox: typeof import("./render-utils.js").calculateBoundingBox
+  viewBoxFromBounds:    typeof import("./render-utils.js").viewBoxFromBounds
+  DEFAULT_BOUNDS:       typeof import("./render-utils.js").DEFAULT_BOUNDS
+  unionBounds:          typeof import("./render-utils.js").unionBounds
+  resetTheme:           typeof import("./defaults.js").resetTheme
+  applyPaletteToTheme:  typeof import("./defaults.js").applyPaletteToTheme
+  getDarkThemeColor:    typeof import("./defaults.js").getDarkThemeColor
+  Palette:              typeof import("./palette.js").Palette
+  computeSlotColors:    typeof import("./palette-css.js").computeSlotColors
+  generateCSS:          typeof import("./palette-css.js").generateCSS
 }
 
 let _deps: Deps | null = null
@@ -71,7 +73,7 @@ function loadDeps(): Promise<void> {
       unionBounds: utils.unionBounds,
       resetTheme: defaults.resetTheme,
       applyPaletteToTheme: defaults.applyPaletteToTheme,
-      getDarkThemeValue: defaults.getDarkThemeValue,
+      getDarkThemeColor: defaults.getDarkThemeColor,
       Palette: palette.Palette,
       computeSlotColors: paletteCss.computeSlotColors,
       generateCSS: paletteCss.generateCSS,
@@ -106,7 +108,7 @@ function getDeps() {
  */
 export function renderToString(source: string, options: RenderOptions = {}): RenderResult {
   const { padding = 0.2, includeSource = true } = options
-  const { parseToAST, ParseStatus, Dispatcher, pegParse, nullLogger, calculateBoundingBox, viewBoxFromBounds, unionBounds, DEFAULT_BOUNDS, resetTheme, applyPaletteToTheme, getDarkThemeValue, Palette, computeSlotColors, generateCSS } = getDeps()
+  const { parseToAST, ParseStatus, Dispatcher, pegParse, nullLogger, calculateBoundingBox, viewBoxFromBounds, unionBounds, DEFAULT_BOUNDS, resetTheme, applyPaletteToTheme, getDarkThemeColor, Palette, computeSlotColors, generateCSS } = getDeps()
 
   resetTheme()
   Palette.setCurrent(`sunset`)
@@ -174,8 +176,8 @@ export function renderToString(source: string, options: RenderOptions = {}): Ren
       const slotColors = computeSlotColors(
         usedSlots,
         (pal: string, slot: string) => Palette.getColorForPalette(pal, slot),
-        getDarkThemeValue('NativeFg'),
-        getDarkThemeValue('NativeBg'),
+        getDarkThemeColor('NativeFg'),
+        getDarkThemeColor('NativeBg'),
         (pal: string, slot: string) => Palette.getLightColorForPalette(pal, slot),
       )
       const css = generateCSS(usedSlots, slotColors, options.themeSelector)

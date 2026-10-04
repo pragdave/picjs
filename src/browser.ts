@@ -8,7 +8,7 @@ import { Dispatcher } from "./dispatcher.js"
 import { parse as pegParse } from "./peg_parser/jp.js"
 import { nullLogger, calculateBoundingBox, viewBoxFromBounds, unionBounds } from "./render-utils.js"
 import { Palette } from "./palette.js"
-import { getDarkThemeValue } from "./defaults.js"
+import { getDarkThemeColor } from "./defaults.js"
 import { computeSlotColors, generateCSS } from "./palette-css.js"
 
 export interface RenderOptions {
@@ -82,8 +82,8 @@ export function render(element: Element, options: RenderOptions = {}): SVGElemen
       const slotColors = computeSlotColors(
         usedSlots,
         (pal: string, slot: string) => Palette.getColorForPalette(pal, slot),
-        getDarkThemeValue('NativeFg'),
-        getDarkThemeValue('NativeBg'),
+        getDarkThemeColor('NativeFg'),
+        getDarkThemeColor('NativeBg'),
         (pal: string, slot: string) => Palette.getLightColorForPalette(pal, slot),
       )
       const css = generateCSS(usedSlots, slotColors)

@@ -1,7 +1,7 @@
 import { RTE } from "./runtime_error.js"
 import { TBase, TA } from "./types.js"
 import { BuiltinConstants, BuiltinFunctions } from "./builtins.js"
-import { DefaultsType } from "./defaults.js"
+import { AttributeDefaults, DefaultsType } from "./defaults.js"
 
 // The shape-defaults key that `Shape.attr = …` writes to: the base every other
 // shape inherits from. Matches ShapeName in the grammar, which maps the literal
@@ -94,38 +94,13 @@ export class Binding {
   //    but the class name takes precedence
   //
 
-  setDefault(category:string, shapeName:string, klass:string, attr:string, value: any) {
-    const attrSet = [ category, shapeName, klass].
-      reduce((ptr, name) => ptr[name] ||= {}, this.defaults)
-    
-    attrSet[attr] = value
+  setDefault(category: string, shapeName: string, klass: string, attr: string, value: unknown) {
+    const shapes = this.defaults[category] ??= {}
+    const classes = shapes[shapeName] ??= {}
+    const attributes = classes[klass] ??= {}
+    attributes[attr] = value
   }
 
-
-  getDefault(category:string, base:string, klass:string, attr: string): any {
-    let result =  this.getDefaultByKlass(category, base, klass, attr)
-
-    if (result) 
-      return result
-
-    if (klass !== `.normal`)
-      result =  this.getDefaultByKlass(category, base, `.normal`, attr)
-
-    if (result) 
-      return result
-
-    throw new Error(`unknown attribute in getDefault(${category}, ${base}, ${klass}, ${attr})`)
-  }
-
-  getDefaultByKlass(category:string, base:string, klass:string, attr:string): any {
-    return (
-      this.defaults?.[category]?.[base]?.[klass]?.[attr]
-    ||
-      this.builtinDefaults?.[category]?.[base]?.[klass]?.[attr]
-    ||
-      (this.outer && this.outer.getDefaultByKlass(category, base, klass, attr)) 
-    )
-  }
 
   // Precedence, lowest to highest:
   //
@@ -140,8 +115,8 @@ export class Binding {
   // class-qualified default outranks an unclassed one, and a concrete shape
   // outranks the SBase every shape falls back to. Outer bindings are merged
   // first, so an inner scope overrides everything an outer one set.
-  getAllDefaultAttributes(category:string, base:string, klass: string) {
-    let result = {}
+  getAllDefaultAttributes(category:string, base:string, klass: string): AttributeDefaults {
+    let result: AttributeDefaults = {}
     if (this.outer) {
       result = this.outer.getAllDefaultAttributes(category, base, klass)
     }
@@ -167,11 +142,11 @@ export class Binding {
     return result
   }
 
-  builtinDefaultsForKlass(category:string, base:string, klass: string): any {
+  builtinDefaultsForKlass(category:string, base:string, klass: string): AttributeDefaults {
     return this.builtinDefaults?.[category]?.[base]?.[klass] || {}
   }
 
-  getAllDefaultAttributesForKlass(category:string, base:string, klass: string): any {
+  getAllDefaultAttributesForKlass(category:string, base:string, klass: string): AttributeDefaults {
     return this.defaults?.[category]?.[base]?.[klass] || {}
   }
 

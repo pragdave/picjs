@@ -2,7 +2,7 @@ import { Dispatcher } from "./dispatcher.js"
 import { PlaybackController } from "./jp-web-playback.js"
 import { nullLogger, calculateBoundingBox, viewBoxFromBounds, unionBounds } from "./render-utils.js"
 import { computeSlotColors, generateCSS } from "./palette-css.js"
-import { getDarkThemeValue } from "./defaults.js"
+import { getDarkThemeColor } from "./defaults.js"
 import { Palette } from "./palette.js"
 import * as AST from "./ast.js"
 
@@ -273,8 +273,8 @@ export class PicjsPlayer {
     const slotColors = computeSlotColors(
       usedSlots,
       (pal: string, slot: string) => Palette.getColorForPalette(pal, slot),
-      getDarkThemeValue(`NativeFg`) as string,
-      getDarkThemeValue(`NativeBg`) as string,
+      getDarkThemeColor(`NativeFg`),
+      getDarkThemeColor(`NativeBg`),
       (pal: string, slot: string) => Palette.getLightColorForPalette(pal, slot),
     )
 

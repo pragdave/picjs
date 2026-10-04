@@ -1,4 +1,4 @@
-import { LineLike } from "./line_like.js"
+import { LineLike, PathPoint } from "./line_like.js"
 import { TColor, TNumber } from "../types.js"
 import { Cardinals, CardinalFactorsFromCenter, UnitVector, XY } from "../position.js"
 
@@ -156,11 +156,12 @@ export class SArc extends LineLike {
   }
 
   // Return point and tangent angle at a given fraction along the arc (0.0 to 1.0)
-  pointAtPercent(t: number) {
+  pointAtPercent(t: number): PathPoint {
     const geo = this.arcGeometry()
 
+    // Too short to be an arc: treat it as a point on a horizontal line
     if (!geo) {
-      return { x: this.start.x, y: this.start.y, tangentAngle: 0 }
+      return { x: this.start.x, y: this.start.y, tangentAngle: 0, radiusAngle: -Math.PI / 2 }
     }
 
     const { cx, cy, r, startAngle, endAngle } = geo

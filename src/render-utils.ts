@@ -75,6 +75,10 @@ export function viewBoxFromBounds(bounds: BoundingBox | null, padding: number = 
  * Union two bounding boxes.
  * Null-safe: returns whichever operand is non-null, or null if both are null.
  */
+// The box around both. A null box (nothing drawn) adds nothing.
+export function unionBounds(a: BoundingBox, b: BoundingBox | null): BoundingBox
+export function unionBounds(a: BoundingBox | null, b: BoundingBox): BoundingBox
+export function unionBounds(a: BoundingBox | null, b: BoundingBox | null): BoundingBox | null
 export function unionBounds(a: BoundingBox | null, b: BoundingBox | null): BoundingBox | null {
   if (!a) return b
   if (!b) return a

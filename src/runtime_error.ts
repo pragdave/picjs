@@ -1,11 +1,6 @@
 import { Interpreter } from "./interpreter.js" 
 import { Visitor } from "./visitor.js"
-
-export interface Location {
-  content: string
-  line: number
-  column: number
-}
+import { Location } from "./location.js"
 
 interface ErrorContext {
   loc: Location

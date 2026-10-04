@@ -171,11 +171,11 @@ describe(`dependency graph integration`, () => {
   it(`Box "Hello" label is initially positioned at box center`, () => {
     const d = runProgram(`Box "Hello"`)
     const [box, label] = d.shapes()
-    expect(label.anchorX).toBeCloseTo(box.anchorX)
-    expect(label.anchorY).toBeCloseTo(box.anchorY)
+    expect(label.anchor.x).toBeCloseTo(box.anchor.x)
+    expect(label.anchor.y).toBeCloseTo(box.anchor.y)
     // Label should have non-NaN position
-    expect(Number.isNaN(label.anchorX)).toBe(false)
-    expect(Number.isNaN(label.anchorY)).toBe(false)
+    expect(Number.isNaN(label.anchor.x)).toBe(false)
+    expect(Number.isNaN(label.anchor.y)).toBe(false)
   })
 
   it(`Box "Hello" label has dimensions set`, () => {
@@ -202,17 +202,17 @@ describe(`dependency graph integration`, () => {
     const [box, label] = d.shapes()
 
     // Record initial positions — label should be at box center
-    expect(label.anchorX).toBeCloseTo(box.anchorX)
-    expect(label.anchorY).toBeCloseTo(box.anchorY)
+    expect(label.anchor.x).toBeCloseTo(box.anchor.x)
+    expect(label.anchor.y).toBeCloseTo(box.anchor.y)
 
     // Simulate width animation step
     box.setAnimatableAttr(`width`, new TNumber(200))
 
     // Box center shouldn't move
-    expect(box.anchorX).toBeCloseTo(box.anchorX) // unchanged
+    expect(box.anchor.x).toBeCloseTo(box.anchor.x) // unchanged
     // Label should still be at box center
-    expect(label.anchorX).toBeCloseTo(box.anchorX)
-    expect(label.anchorY).toBeCloseTo(box.anchorY)
+    expect(label.anchor.x).toBeCloseTo(box.anchor.x)
+    expect(label.anchor.y).toBeCloseTo(box.anchor.y)
   })
 })
 
@@ -236,8 +236,8 @@ describe(`multiple labels`, () => {
   it(`multiple labels are centered on the parent`, () => {
     const d = runProgram(`Box "A" "B"`)
     const [box, label] = d.shapes()
-    expect(label.anchorX).toBeCloseTo(box.anchorX)
-    expect(label.anchorY).toBeCloseTo(box.anchorY)
+    expect(label.anchor.x).toBeCloseTo(box.anchor.x)
+    expect(label.anchor.y).toBeCloseTo(box.anchor.y)
   })
 
   it(`single label still works as before`, () => {
@@ -252,7 +252,7 @@ describe(`multiple labels`, () => {
     const d = runProgram(`Circle "top" "bottom"`)
     const [circle, label] = d.shapes()
     expect(label.text).toBe(`top\n\nbottom`)
-    expect(label.anchorX).toBeCloseTo(circle.anchorX)
+    expect(label.anchor.x).toBeCloseTo(circle.anchor.x)
   })
 
   it(`works with a with-constraint`, () => {
@@ -260,8 +260,8 @@ describe(`multiple labels`, () => {
     const [box, label] = d.shapes()
     expect(label.text).toBe(`A\n\nB`)
     // label center should still match box center
-    expect(label.anchorX).toBeCloseTo(box.anchorX)
-    expect(label.anchorY).toBeCloseTo(box.anchorY)
+    expect(label.anchor.x).toBeCloseTo(box.anchor.x)
+    expect(label.anchor.y).toBeCloseTo(box.anchor.y)
   })
 
   it(`labels interleaved with other attributes`, () => {
@@ -314,7 +314,7 @@ describe(`multiple labels`, () => {
     expect(shapes).toHaveLength(3)
     const [box1, , box2] = shapes
     // Box2 should be placed relative to Box1, not the label
-    expect(box2.anchorX).toBeGreaterThan(box1.anchorX)
+    expect(box2.anchor.x).toBeGreaterThan(box1.anchor.x)
   })
 
   it(`child label receives parent dimensions`, () => {
@@ -416,20 +416,20 @@ describe(`Goto`, () => {
   it(`moves cursor; next shape centers there`, () => {
     const d = runProgram(`Goto s 0.5\nb = Box`)
     const box = d.shapes().find(s => s.shapeName === `SBox`)!
-    expect(box.anchorY).toBeGreaterThan(0.4)
+    expect(box.anchor.y).toBeGreaterThan(0.4)
   })
 
   it(`moves in the current direction by default distance`, () => {
     const d = runProgram(`Face e\nGoto\nb = Box`)
     const box = d.shapes().find(s => s.shapeName === `SBox`)!
-    expect(box.anchorX).toBeGreaterThan(0.5)
+    expect(box.anchor.x).toBeGreaterThan(0.5)
   })
 
   it(`accepts absolute position`, () => {
     const d = runProgram(`Goto (3, 4)\nb = Box`)
     const box = d.shapes().find(s => s.shapeName === `SBox`)!
-    expect(box.anchorX).toBeCloseTo(3, 1)
-    expect(box.anchorY).toBeCloseTo(4, 1)
+    expect(box.anchor.x).toBeCloseTo(3, 1)
+    expect(box.anchor.y).toBeCloseTo(4, 1)
   })
 
   it(`Goto shape resumes layout from that shape`, () => {
@@ -437,9 +437,9 @@ describe(`Goto`, () => {
     const boxes = d.shapes().filter(s => s.shapeName === `SBox`)
     const [a, c, b] = boxes
     // B should be east of A, not overlapping it
-    expect(b.anchorX!).toBeGreaterThan(a.anchorX!)
+    expect(b.anchor.x!).toBeGreaterThan(a.anchor.x!)
     // C should be west of A
-    expect(c.anchorX!).toBeLessThan(a.anchorX!)
+    expect(c.anchor.x!).toBeLessThan(a.anchor.x!)
   })
 })
 
@@ -448,21 +448,21 @@ describe(`Gap`, () => {
     const d = runProgram(`a = Box\nGap e 2\nb = Box`)
     const boxes = d.shapes().filter(s => s.shapeName === `SBox`)
     // a east edge at 0.5, gap 2, b west edge at 2.5, b center at 3.0
-    expect(boxes[1].anchorX!).toBeCloseTo(3.0, 1)
+    expect(boxes[1].anchor.x!).toBeCloseTo(3.0, 1)
   })
 
   it(`same repeats previous Gap`, () => {
     const d = runProgram(`Box\nGap e 1\nBox\nGap same\nb = Box`)
     const boxes = d.shapes().filter(s => s.shapeName === `SBox`)
-    const gap1 = boxes[1].anchorX! - boxes[0].anchorX!
-    const gap2 = boxes[2].anchorX! - boxes[1].anchorX!
+    const gap1 = boxes[1].anchor.x! - boxes[0].anchor.x!
+    const gap2 = boxes[2].anchor.x! - boxes[1].anchor.x!
     expect(gap1).toBeCloseTo(gap2, 1)
   })
 
   it(`defaults to current direction`, () => {
     const d = runProgram(`Face e\nBox\nGap 2\nb = Box`)
     const boxes = d.shapes().filter(s => s.shapeName === `SBox`)
-    expect(boxes[1].anchorX!).toBeGreaterThan(boxes[0].anchorX! + 2)
+    expect(boxes[1].anchor.x!).toBeGreaterThan(boxes[0].anchor.x! + 2)
   })
 })
 
@@ -472,22 +472,22 @@ describe(`Aside`, () => {
     const shapes = d.shapes().filter(s => s.shapeName === `SBox`)
     // b should be positioned as if the Aside block never happened
     // a is at origin, b should be next to a (same x as shapes[1] which was first after a)
-    expect(shapes[3].anchorX).toBeCloseTo(shapes[1].anchorX!, 1)
+    expect(shapes[3].anchor.x).toBeCloseTo(shapes[1].anchor.x!, 1)
   })
 
   it(`restores direction after block`, () => {
     const d = runProgram(`Face e\nAside {\n  Face s\n  Box\n}\nb = Box`)
     const boxes = d.shapes().filter(s => s.shapeName === `SBox`)
     // b should flow east (original direction), not south
-    expect(boxes[1].anchorY).toBeCloseTo(0, 1)
+    expect(boxes[1].anchor.y).toBeCloseTo(0, 1)
   })
 
   it(`shapes inside aside are still drawn`, () => {
     const d = runProgram(`Aside {\n  Box at (5, 5)\n}`)
     const boxes = d.shapes().filter(s => s.shapeName === `SBox`)
     expect(boxes.length).toBe(1)
-    expect(boxes[0].anchorX).toBeCloseTo(5)
-    expect(boxes[0].anchorY).toBeCloseTo(5)
+    expect(boxes[0].anchor.x).toBeCloseTo(5)
+    expect(boxes[0].anchor.y).toBeCloseTo(5)
   })
 
   it(`does not make aside shapes implicit connector targets`, () => {
@@ -551,9 +551,9 @@ describe(`label fill color`, () => {
     const d = runProgram(`Box "hello" ("world" fill ~blue)`)
     const [, label1, label2] = d.shapes()
     // Labels should have different Y positions (stacked vertically)
-    expect(label1.anchorY).not.toBe(label2.anchorY)
+    expect(label1.anchor.y).not.toBe(label2.anchor.y)
     // First label should be above second (smaller Y in SVG coordinates)
-    expect(label1.anchorY!).toBeLessThan(label2.anchorY!)
+    expect(label1.anchor.y!).toBeLessThan(label2.anchor.y!)
   })
 
   it(`palette color fill (like ~b6) is respected`, () => {
@@ -601,8 +601,8 @@ describe(`Label font_size syntax`, () => {
     expect(label.shapeName).toBe(`SLabel`)
     expect(label.width).toBeGreaterThan(0)
     expect(label.height).toBeGreaterThan(0)
-    expect(label.anchorX).not.toBeNaN()
-    expect(label.anchorY).not.toBeNaN()
+    expect(label.anchor.x).not.toBeNaN()
+    expect(label.anchor.y).not.toBeNaN()
   })
 })
 

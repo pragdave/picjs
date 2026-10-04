@@ -2,10 +2,10 @@ import { parseToAST, ParseResult, ParseStatus  } from "./parser.js"
 import { RTE } from "./runtime_error.js"
 import { parse as pegParse } from "./peg_parser/jp.js"
 import { Dispatcher } from "./dispatcher.js"
-import { nullLogger, calculateBoundingBox, unionBounds } from "./render-utils.js"
+import { nullLogger, calculateBoundingBox, unionBounds, type BoundingBox } from "./render-utils.js"
 import { Location } from "./location.js"
 import { Binding } from "./binding.js"
-import { setTheme, getThemeName, resetTheme, applyPaletteToTheme, getDarkThemeValue } from "./defaults.js"
+import { setTheme, getThemeName, resetTheme, applyPaletteToTheme, getDarkThemeColor } from "./defaults.js"
 import { Palette } from "./palette.js"
 import { computeSlotColors, generateCSS } from "./palette-css.js"
 
@@ -79,7 +79,7 @@ const examples: { file: string; description: string }[] = [
 
 const extraStyles = el(`style`, { type: `text/css` })
 const svgContainer = el(`div.svg-container`)
-const svgHolder   = svg(`svg`, { style: `width:100%;height:100%` })
+const svgHolder   = svg(`svg`, { style: `width:100%;height:100%` }) as SVGSVGElement
 const errorArea   = el(`code.error-area`)
 const errorHolder = el(`pre`, errorArea)
 const resultHolder = el(`div.result-area`)
@@ -422,8 +422,8 @@ function preview() {
         const slotColors = computeSlotColors(
           usedSlots,
           (pal, slot) => Palette.getColorForPalette(pal, slot),
-          getDarkThemeValue('NativeFg') as string,
-          getDarkThemeValue('NativeBg') as string
+          getDarkThemeColor('NativeFg'),
+          getDarkThemeColor('NativeBg')
         )
         const paletteCss = generateCSS(usedSlots, slotColors)
         if (paletteCss) css = css ? `${css}\n${paletteCss}` : paletteCss
@@ -436,7 +436,7 @@ function preview() {
       svgHolder.getBoundingClientRect()
       const bbox = svgHolder.getBBox()
       const pad = 0.2
-      let bounds = { minX: bbox.x, minY: bbox.y, maxX: bbox.x + bbox.width, maxY: bbox.y + bbox.height, width: bbox.width, height: bbox.height }
+      let bounds: BoundingBox = { minX: bbox.x, minY: bbox.y, maxX: bbox.x + bbox.width, maxY: bbox.y + bbox.height, width: bbox.width, height: bbox.height }
       const times = dispatcher.animationBoundaryTimes()
       if (times.length > 1) {
         // Sample at most 20 evenly spaced times (always include the last)

@@ -1,3 +1,5 @@
+import type { PaletteColors } from "./palette.js"
+
 const ShapeDefaults = `
 SArc    | stroke      | stroke_width     | linestyle | turn  | rotation | reveal_time | hide_time
 -----------------------------------------------------------------------
@@ -124,11 +126,14 @@ const Themes: ThemeType = {
   },
 }
 
+// Defaults for some attributes: from the built-in table, or set by the user
+// (Box.fill = ~red), as plain values such as numbers and strings
+export type AttributeDefaults = Record<string, unknown>
+
 export type ShapeDefaultsType = {
-    [ name: string ]: {            // name of thing in category (eg SBox)
-      [ className: string ]: {     // class name  (eg .normal)
-        [ attribute: string ]: any // attribute name
-  }}
+  [ name: string ]: {                  // name of thing in category (eg SBox)
+    [ className: string ]: AttributeDefaults   // class name (eg .normal)
+  }
 }
 
 export type DefaultsType = {
@@ -142,8 +147,11 @@ export function getThemeValue(name: string): string | number | undefined {
   return Theme[name]
 }
 
-export function getDarkThemeValue(name: string): string | number | undefined {
-  return Themes.Dark[name]
+export function getDarkThemeColor(name: string): string {
+  const value = Themes.Dark[name]
+  if (typeof value !== `string`)
+    throw new Error(`internal error: the dark theme's ${name} is not a color`)
+  return value
 }
 
 const ThemeVarToBaseSlot: Record<string, string> = {
@@ -196,7 +204,7 @@ export function getThemeNames(): string[] {
  * Update theme colors based on palette colors.
  * Called when Palette.current is set.
  */
-export function applyPaletteToTheme(colors: Record<string, string>, paletteName?: string): void {
+export function applyPaletteToTheme(colors: PaletteColors, paletteName?: string): void {
   if (paletteName) currentPaletteForSlots = paletteName
   Theme.BoxFill0 = colors.b1
   Theme.BoxFill1 = colors.b2

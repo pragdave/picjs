@@ -50,7 +50,8 @@
     "test": "node --experimental-vm-modules node_modules/.bin/jest",
     "test:e2e": "npx playwright test",
     "parser": "make src/peg_parser/jp.js",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit -p ."
   },
   "publishConfig": {
     "access": "public"

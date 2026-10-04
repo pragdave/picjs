@@ -98,7 +98,7 @@ export class Dispatcher {
   
   //////////////////////////////////////////////////  shapeGraph
   
-  addShape(shapeName: string, astArgs: Record<string, any> | undefined, args: AST.Parameters, withConstraint?: WithConstraint) {
+  addShape(shapeName: string, astArgs: Record<string, any> | undefined, args: AST.Parameters, withConstraint?: WithConstraint | null) {
     return this.shapeGraph.create(shapeName, astArgs, args, withConstraint)
   }
 

@@ -148,7 +148,7 @@ export interface Group extends Base {
   type: `Group`
   body: ExpressionList | Node
   args?: Record<string, any>
-  withConstraint?: WithConstraint
+  withConstraint?: WithConstraint | null    // the parser gives null for none
 }
 
 export interface Identifier extends Base {
@@ -195,14 +195,14 @@ export interface LayoutGap extends Base {
 
 export interface MoveTo extends Base {
   type: `MoveTo`
-  what: QualifiedLValue | VariableValue,
+  what: Node,     // a shape, or a point on one (a.nw): see Interpreter.moveTarget
   place: Node,
   params: { [name: string]: any }
 }
 
 export interface MoveBy extends Base {
   type: `MoveBy`
-  what: QualifiedLValue | VariableValue,
+  what: Node,
   direction: { x: number, y: number },
   distance: Node,
   params: { [name: string]: any }
@@ -299,11 +299,36 @@ export interface SetTime extends Base {
   when: string | number,
 }
 
+// A label along a line, as the parser builds it
+export interface LineLabel {
+  text: Node,
+  pathPercent: number,
+  side: string | null,
+  _labelArgs?: Record<string, Node>,
+}
+
+// A shape's arguments: an expression for each attribute, plus the entries the
+// parser adds for labels, a line's path, and other clauses
+export interface ShapeArgs {
+  [attribute: string]: Node | Node[] | LineLabel[] | boolean | string | undefined
+  label?: Shape,                // one label
+  _shapeLabels?: Shape[],       // several labels
+  _labels?: LineLabel[],        // labels along a line
+  _start?: Node,                // line from
+  _end?: Node,                  // line to
+  _waypoints?: Node[],          // line then ... then
+  _closed?: boolean,
+  _rotationCenter?: Node,       // rotation ... about
+  _behind?: Node,
+  _same?: boolean,
+  _class?: string,              // .h1
+}
+
 export interface Shape extends Base {
   type: `Shape`
   shape: string,
-  args: Record<string, Node>,
-  withConstraint?: WithConstraint,
+  args: ShapeArgs,
+  withConstraint?: WithConstraint | null,   // the parser gives null for none
   isChildShape?: boolean,  // true for label shapes that shouldn't become lastShape
 }
 
@@ -342,8 +367,9 @@ export interface VariableValue extends Base {
 }
 
 
+// `with .nw at place`, as the parser builds it
 export interface ASTWithConstraint {
-  type: `ASTWithConstraint`,
+  type: `WithConstraint`,
   selfElement?: string,  // For "with self.element" syntax
   cardinal: Cardinals,
   place: Node

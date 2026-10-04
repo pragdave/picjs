@@ -232,8 +232,8 @@ export class Interpreter extends Visitor{
     let startX: number, startY: number
 
     if (lastShape.width === 0 && lastShape.height === 0) {
-      startX = lastShape.x
-      startY = lastShape.y
+      startX = lastShape.anchor.x
+      startY = lastShape.anchor.y
     } else {
       const c = lastShape.c
       const projection = { x: c.x + direction.x, y: c.y + direction.y }
@@ -433,35 +433,8 @@ export class Interpreter extends Visitor{
     return result
   }
 
-  // This is more complex than it should be, because I wanted to cheat and
-  // allow `move a.nw to (1,2)`, which means that the first agument to move
-  // is actually an lvalue. But, if I say `move a to ...` then the `a`
-  // is just an rvalue.
-  //
-  // This means I needs to manually take the parse apart here and treat
-  // the two cases differently. It means the language isn't consistent here, but
-  // at the same it's more natural for the user than
-  //
-  //     move a so that .s is at (1, 2)
-
   VisitMoveTo(node: AST.MoveTo) {
-    let shape
-    let cardinal = `c`
-
-    if (isWholeShape(node.what)) {   // move myshape ..., move last box ...
-      shape = this.accept(node.what)
-    }
-    else if (node.what.type === `QualifiedLValue`) { // move myshape.nw
-      shape = this.accept(node.what.left)
-      const cardinalAttr = node.what.right
-      if (cardinalAttr.qtype !== `attr`) {
-        throw new RTE(`Looking for a cardinal position at the end of the shape to move`)
-      }
-      cardinal = this.accept(cardinalAttr.qvalue)
-    }
-    else {
-      throw new RTE(`Don't know how to move a ${node.what.type}`)
-    }
+    const { shape, cardinal } = this.moveTarget(node.what)
 
     const mover = new MoveToAnimator(
       shape,
@@ -474,17 +447,7 @@ export class Interpreter extends Visitor{
   }
 
   VisitMoveBy(node: AST.MoveBy) {
-    let shape
-
-    if (isWholeShape(node.what)) {
-      shape = this.accept(node.what)
-    }
-    else if (node.what.type === `QualifiedLValue`) {
-      shape = this.accept(node.what.left)
-    }
-    else {
-      throw new RTE(`Don't know how to move a ${node.what.type}`)
-    }
+    const { shape } = this.moveTarget(node.what)
 
     const distance = this.accept(node.distance).toNative()
     const dx = node.direction.x * distance
@@ -498,6 +461,29 @@ export class Interpreter extends Visitor{
     )
     this.dispatcher.addAnimation(mover)
     return shape
+  }
+
+  // What `move` moves: a whole shape, or one of its points (`a.nw`). The
+  // point is named by an lvalue rather than evaluated, which is less
+  // consistent than the rest of the language, but reads more naturally than
+  // something like `move a so that .s is at (1, 2)`.
+  private moveTarget(what: AST.Node): { shape: Shapes.SBase, cardinal: Cardinals } {
+    let shape, cardinal = `c`
+
+    if (isWholeShape(what)) {
+      shape = this.accept(what)
+    }
+    else if (what.type === `QualifiedLValue` && what.right.qtype === `attr`) {
+      shape = this.accept(what.left)
+      cardinal = this.accept(what.right.qvalue)
+      if (!Shapes.CardinalAttributes.has(cardinal))
+        throw new RTE(`"${cardinal}" is not a point on the shape: use one of ${[...Shapes.CardinalAttributes].join(`, `)}`)
+    }
+
+    if (!(shape instanceof Shapes.SBase))
+      throw new RTE(`"move" needs a shape, or a point on one such as a.nw`)
+
+    return { shape, cardinal: cardinal as Cardinals }
   }
 
   VisitNumber(node: AST.Number) {
@@ -632,11 +618,7 @@ export class Interpreter extends Visitor{
     if (this.dispatcher.isReEvaluating && (node as any)._memoizedShape)
       return (node as any)._memoizedShape
 
-    const label = <AST.Shape>node.args.label
-    const shapeLabels = node.args._shapeLabels as AST.Shape[] | undefined
-    const lineLabels = node.args._labels as { text: AST.Node, pathPercent: number, side: string | null }[] | undefined
-    const behindAST = node.args._behind
-    const hasSame = node.args._same
+    const { label, _shapeLabels: shapeLabels, _labels: lineLabels, _behind: behindAST, _same: hasSame } = node.args
 
     // Work on a copy to avoid mutating the shared AST (breaks when functions
     // call the same shape node multiple times).
@@ -798,7 +780,6 @@ export class Interpreter extends Visitor{
       type: `Shape`,
       shape: `SLabel`,
       args: { ...labels[0].args },
-      withConstraint: null,
     }
 
     const child = parent.setupChildWithConstraint(combinedAst)
@@ -829,7 +810,6 @@ export class Interpreter extends Visitor{
         type: `Shape`,
         shape: `SLabel`,
         args,
-        withConstraint: null,
       }
 
       // Setup constraint with path percent and side

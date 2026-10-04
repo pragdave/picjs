@@ -1,5 +1,8 @@
 import { test, expect } from '@playwright/test'
 
+// Code run in the page imports the library from the dev server by URL
+type RenderModule = typeof import("../../src/render-to-string.js")
+
 const DIAGRAM = `Palette.current = "sunset"
 Box.width = 2.5
 Box.height = 0.7
@@ -126,7 +129,7 @@ test.describe('text position in shapes - renderAll', () => {
 test.describe('text position in shapes - renderToString', () => {
   test('text does not overflow box bounds', async ({ page }) => {
     const result = await page.evaluate(async (src) => {
-      const { renderToStringAsync } = await import('/src/render-to-string.ts')
+      const { renderToStringAsync }: RenderModule = await import('/src/render-to-string.ts' as string)
       const strResult = await renderToStringAsync(src, { includeSource: false })
       if (strResult.error) return { issues: [strResult.error] }
 
@@ -168,7 +171,7 @@ test.describe('text position in shapes - renderToString', () => {
 
   test('text is vertically centered in boxes', async ({ page }) => {
     const result = await page.evaluate(async (src) => {
-      const { renderToStringAsync } = await import('/src/render-to-string.ts')
+      const { renderToStringAsync }: RenderModule = await import('/src/render-to-string.ts' as string)
       const strResult = await renderToStringAsync(src, { includeSource: false })
       if (strResult.error) return { issues: [strResult.error] }
 
@@ -208,7 +211,7 @@ test.describe('text position in shapes - renderToString', () => {
 
   test('text is horizontally centered in boxes', async ({ page }) => {
     const result = await page.evaluate(async (src) => {
-      const { renderToStringAsync } = await import('/src/render-to-string.ts')
+      const { renderToStringAsync }: RenderModule = await import('/src/render-to-string.ts' as string)
       const strResult = await renderToStringAsync(src, { includeSource: false })
       if (strResult.error) return { issues: [strResult.error] }
 

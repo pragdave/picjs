@@ -1,5 +1,8 @@
 import { test, expect } from '@playwright/test'
 
+// Code run in the page imports the library from the dev server by URL
+type RenderModule = typeof import("../../src/render-to-string.js")
+
 test.beforeEach(async ({ page }) => {
   await page.goto('/test/e2e/fixture.html')
   await page.waitForFunction(() => (window as any).__ready === true)
@@ -72,7 +75,7 @@ test.describe('markdown label links - renderAll', () => {
 
   test('link text containing "&" stays in one <a> with no dropped space', async ({ page }) => {
     const result = await page.evaluate((src) => {
-      const svg = (window as any).renderDiagram(src)
+      const svg: SVGSVGElement | null = (window as any).renderDiagram(src)
       if (!svg) return null
       const links = Array.from(svg.querySelectorAll('a'))
       return { linkCount: links.length, text: links[0]?.textContent ?? null }
@@ -87,7 +90,7 @@ test.describe('markdown label links - renderAll', () => {
 test.describe('markdown label links - renderToString', () => {
   async function renderToSvgString(page: any, src: string) {
     return page.evaluate(async (source: string) => {
-      const { renderToStringAsync } = await import('/src/render-to-string.ts')
+      const { renderToStringAsync }: RenderModule = await import('/src/render-to-string.ts' as string)
       return renderToStringAsync(source, { includeSource: false })
     }, src)
   }

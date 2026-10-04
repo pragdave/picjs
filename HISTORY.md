@@ -7,6 +7,11 @@
   assignments, and keep referring to the same shape after more are drawn
 * Fix changing a palette-colored shape's color after creating it (`b.fill = ~b5`, or animating it
   with `set`) having no visible effect; labels inside it now re-color to match
+* Fix the built library failing to render an empty diagram, or one that draws nothing
+* Report a bad `take`, calling something that isn't a function, a list index out of range or not a
+  number, and `move` given something other than a shape or one of its points (`move b.fill` was
+  accepted, and broke the animation), as errors that say what is wrong
+* `??` now shows shapes, colors and blocks as readable source
 
 ## 0.3.0
 

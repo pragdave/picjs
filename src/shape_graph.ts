@@ -18,14 +18,14 @@ export class ShapeGraph {
     this.dispatcher = dispatcher
   }
 
-  create(name: string, astArgs: Record<string, any> | undefined, args: Shapes.Args, withConstraint?: WithConstraint) {
+  create(name: string, astArgs: Record<string, any> | undefined, args: Shapes.Args, withConstraint?: WithConstraint | null) {
     const ctr = Shapes.ShapeConstructors[name]
 
     // const ctr = (Shapes as Shapes.ShapeModule)[name])
     if (!ctr)
       throw new Error(`Unknown shape type: "${name}"`)
 
-    const shape = new ctr({ ...args, _shapeName: name }, withConstraint, this.dispatcher)
+    const shape = new ctr({ ...args, _shapeName: name }, withConstraint ?? undefined, this.dispatcher)
     shape.astArgs = astArgs
     shape.id = `${name}-${this.sno++}`
 

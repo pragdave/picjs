@@ -54,7 +54,7 @@ test.describe('Aside with Face direction', () => {
 
       // Get all shape groups
       const groups = svg.querySelectorAll('g[data-jp-id]')
-      const shapes: Record<string, DOMRect> = {}
+      const shapes: Record<string, { x: number, y: number, width: number, height: number }> = {}
       for (const g of groups) {
         const id = g.getAttribute('data-jp-id')
         const bb = g.getBBox()
@@ -154,7 +154,7 @@ test.describe('Aside with Face direction', () => {
       let yesLine: { x1: number, y1: number, x2: number, y2: number, width: number, height: number } | null = null
 
       for (const p of paths) {
-        const bb = (p as SVGElement).getBBox()
+        const bb = (p as SVGGraphicsElement).getBBox()
         // A line connecting fpCheck (left side) to closeAsFP (right side)
         // should have its x-range between closeAsFP.right and fpCheck.left
         const lineRight = bb.x + bb.width
@@ -211,7 +211,7 @@ test.describe('Aside with Face direction', () => {
       let noLine: { x1: number, y1: number, x2: number, y2: number, width: number, height: number } | null = null
 
       for (const p of paths) {
-        const bb = (p as SVGElement).getBBox()
+        const bb = (p as SVGGraphicsElement).getBBox()
         const lineTop = bb.y
         const lineBottom = bb.y + bb.height
         // Line should start near fpCheck bottom and end near enrichBox top
@@ -281,7 +281,7 @@ test.describe('Aside with Face direction', () => {
       let yesLineTarget: string | null = null
 
       for (const p of paths) {
-        const bb = (p as SVGElement).getBBox()
+        const bb = (p as SVGGraphicsElement).getBBox()
         const lineRight = bb.x + bb.width
         const lineLeft = bb.x
 

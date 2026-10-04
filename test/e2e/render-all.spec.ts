@@ -1,5 +1,8 @@
 import { test, expect, Page } from '@playwright/test'
 
+// Code run in the page imports the library from the dev server by URL
+type RenderModule = typeof import("../../src/render-to-string.js")
+
 async function renderDiagram(page: Page, source: string) {
   return page.evaluate((src) => {
     const svg = (window as any).renderDiagram(src)
@@ -299,7 +302,7 @@ test.describe('viewBox', () => {
 test.describe('consistency with renderToString', () => {
   test('box rect positions match between renderAll and renderToString', async ({ page }) => {
     const result = await page.evaluate(async () => {
-      const { renderToStringAsync } = await import('/src/render-to-string.ts')
+      const { renderToStringAsync }: RenderModule = await import('/src/render-to-string.ts' as string)
 
       // renderAll path
       const svg = (window as any).renderDiagram('box "Hello"\n->\nbox "World"')
@@ -338,7 +341,7 @@ test.describe('consistency with renderToString', () => {
 
   test('text is visually centered in both renderAll and renderToString', async ({ page }) => {
     const result = await page.evaluate(async () => {
-      const { renderToStringAsync } = await import('/src/render-to-string.ts')
+      const { renderToStringAsync }: RenderModule = await import('/src/render-to-string.ts' as string)
 
       // renderAll path — check text is centered relative to its parent rect
       const svg = (window as any).renderDiagram('box "Hello"\n->\nbox "World"')

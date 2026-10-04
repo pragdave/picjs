@@ -1,6 +1,7 @@
 import { RTE } from "./runtime_error.js"
 import { TPosition } from "./types.js"
 import { LineLike, SArc, SBase, SGroup, SLine, SPoint, SPolyline } from "./shapes.js"
+import type { LineLabelConstraint } from "./shapes/_base.js"
 import { Cardinals, XY } from "./position.js"
 import { Dispatcher } from "./dispatcher.js"
 
@@ -81,40 +82,32 @@ export class Geometry {
   // shape and the current direction
 
   position(shape: SBase) {
-    switch (shape.shapeName) {
-      case 'SLine':
-      case `SArc`:
-        this.positionLine(shape)
-        break
-
-      case `SPolyline`:
-        this.positionPolyline(shape as SPolyline)
-        break
-
-      case `SGroup`: {
-        const group = shape as SGroup
-        if (shape.withConstraint) {
-          this.constrainedLayout(shape)
-        }
-        else if (group.needsFlowLayout && group.predecessorShape) {
-          this.lastShape = group.predecessorShape
-          this.autolayout(shape)
-        }
-        // No repositionChildren() needed - SVG transform handles it
-        break
+    if (shape instanceof SPolyline) {
+      this.positionPolyline(shape)
+    }
+    else if (shape instanceof SLine || shape instanceof SArc) {
+      this.positionLine(shape)
+    }
+    else if (shape instanceof SGroup) {
+      if (shape.withConstraint) {
+        this.constrainedLayout(shape)
       }
+      else if (shape.needsFlowLayout && shape.predecessorShape) {
+        this.lastShape = shape.predecessorShape
+        this.autolayout(shape)
+      }
+      // No repositionChildren() needed - SVG transform handles it
+    }
+    else {
+      if (shape.missingDimensions())
+        this.dispatcher.calculateDimensions(shape)
 
-      default:
-        if (shape.missingDimensions())
-          this.dispatcher.calculateDimensions(shape)
-
-        if (shape.withConstraint) {
-          this.constrainedLayout(shape)
-        }
-        else if (shape.hasNoXCoordinate() || shape.hasNoYCoordinate()) {
-          this.autolayout(shape)
-        }
-        break
+      if (shape.withConstraint) {
+        this.constrainedLayout(shape)
+      }
+      else if (shape.hasNoXCoordinate() || shape.hasNoYCoordinate()) {
+        this.autolayout(shape)
+      }
     }
 
     if (!shape.isChild() && shape.withConstraint?.type !== `ProcessedWithConstraint`)
@@ -134,15 +127,15 @@ export class Geometry {
     const c = this.lastShape.c
 
     if (this.lastShape.width === 0 && this.lastShape.height === 0 && !this.lastShape.layoutAsEdge) {
-      shape.anchorX = this.lastShape.x
-      shape.anchorY = this.lastShape.y
+      shape.anchorX = this.lastShape.anchor.x
+      shape.anchorY = this.lastShape.anchor.y
     }
     else if (this.lastShape.width === 0 && this.lastShape.height === 0 && this.lastShape.layoutAsEdge) {
       // Gap endpoint: place next shape's entry edge at this point
       shape.anchorX = shape.anchorY = 0
       const offset = shape.cropLineTo(null, { x: -this.direction.x, y: -this.direction.y })
-      shape.anchorX = this.lastShape.x - offset.x
-      shape.anchorY = this.lastShape.y - offset.y
+      shape.anchorX = this.lastShape.anchor.x - offset.x
+      shape.anchorY = this.lastShape.anchor.y - offset.y
     }
     else {
       const projection = { x: c.x + this.direction.x, y: c.y + this.direction.y }
@@ -191,7 +184,7 @@ export class Geometry {
     }
 
     // Handle "with self.element" syntax for groups
-    if (constraint.selfElement && shape instanceof SGroup) {
+    if (constraint.type === `WithConstraint` && constraint.selfElement && shape instanceof SGroup) {
       const child = shape.attrs[constraint.selfElement]
       if (!(child instanceof SBase)) {
         throw new RTE(`self.${constraint.selfElement} is not a shape`)
@@ -223,7 +216,7 @@ export class Geometry {
   // Text is always parallel to the line segment and never upside-down.
   // "above" offsets toward north (negative y in SVG), "below" toward south.
   // Offset distance = (line stroke-width + label font-size) / 2
-  positionLineLabel(label: SBase, constraint: any) {
+  positionLineLabel(label: SBase, constraint: LineLabelConstraint) {
     const line = constraint.parentShape as LineLike
     const pathPercent = constraint.pathPercent ?? 0.5
     const side = constraint.side || `center`
