@@ -52,19 +52,19 @@ export class SCircle extends SBase {
   }
 
   cropLineRelative(_center: XY, target: XY) {
-    let startX = this.x
-    let startY = this.y
+    const startX = this.x
+    const startY = this.y
 
-    let endX   =  target.x
-    let endY   =  target.y
+    const endX   =  target.x
+    const endY   =  target.y
 
     if (startX === null || startY === null)
       throw new Error(`missing start coordinate on line crop`)
 
-    let theta = Math.atan2(endY - startY, endX - startX)
+    const theta = Math.atan2(endY - startY, endX - startX)
 
-    let x = this.radius * Math.cos(theta)
-    let y = this.radius * Math.sin(theta)
+    const x = this.radius * Math.cos(theta)
+    const y = this.radius * Math.sin(theta)
 
     return { x, y }
   }}

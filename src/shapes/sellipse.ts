@@ -36,14 +36,14 @@ export class SEllipse extends SBase {
   }
 
   cropLineRelative(_center: XY, target: XY) {
-    let startX = this.x
-    let startY = this.y
+    const startX = this.x
+    const startY = this.y
     if (startX === null || startY === null)
       throw new Error(`missing start coordinate on line crop`)
 
-    let theta = Math.atan2(target.y - startY, target.x - startX)
-    let x = this.rx * Math.cos(theta)
-    let y = this.ry * Math.sin(theta)
+    const theta = Math.atan2(target.y - startY, target.x - startX)
+    const x = this.rx * Math.cos(theta)
+    const y = this.ry * Math.sin(theta)
     return { x, y }
   }
 }

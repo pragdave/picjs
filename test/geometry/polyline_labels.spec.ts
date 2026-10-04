@@ -2,7 +2,6 @@ import { parseToMockAST } from "../helpers/ast.js"
 import { newDispatcher } from "../helpers/eval.js"
 import { ParseStatus } from "../../src/parser.js"
 import { SPolyline } from "../../src/shapes/spolyline.js"
-import { SBase } from "../../src/shapes/_base.js"
 
 function runProgram(src: string) {
   const parseResult = parseToMockAST(`Program`, src.trim())
@@ -52,7 +51,7 @@ describe(`Polyline label positioning — simple L-shape`, () => {
   `
 
   it(`label at 50% is at the corner`, () => {
-    const { poly, labels } = polylineAndLabels(src)
+    const { labels } = polylineAndLabels(src)
     expect(labels).toHaveLength(1)
     const label = labels[0]
     // 50% of an L-shaped path with equal segments is exactly at the corner (10, 0)

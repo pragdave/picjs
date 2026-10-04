@@ -1,4 +1,4 @@
-import { test, expect, Page } from '@playwright/test'
+import { test, expect } from '@playwright/test'
 
 const DIAGRAM = `Face s
 
@@ -284,7 +284,6 @@ test.describe('Aside with Face direction', () => {
         const bb = (p as SVGElement).getBBox()
         const lineRight = bb.x + bb.width
         const lineLeft = bb.x
-        const lineCy = bb.y + bb.height / 2
 
         // A westward line from fp_check should start near fp_check's left edge
         const startsNearFp = Math.abs(lineRight - fpCheck.left) < 0.5

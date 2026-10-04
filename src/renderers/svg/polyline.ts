@@ -4,7 +4,6 @@ import * as Convert from "./attribute_converters.js"
 import { RenderParameters } from "../../types.js"
 import * as Shape from "../../shapes.js"
 import { XY } from "../../position.js"
-import { SvgNode, svgNode } from "../../svg-node.js"
 
 
 export class Polyline extends LineLikeRenderer {
@@ -224,7 +223,7 @@ export class Polyline extends LineLikeRenderer {
       this.pendingMarkers.push(this.markerPath(this.attrs.line_end, last, +1, angle))
     }
 
-    let d = ``
+    let d: string
 
     if (closed) {
       // For the starting mid-point, compute effective radius for first corner

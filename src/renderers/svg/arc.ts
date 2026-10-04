@@ -4,7 +4,6 @@ import * as Convert from "./attribute_converters.js"
 import * as Shape from "../../shapes.js"
 import { XY } from "../../position.js"
 import { RenderParameters } from "../../types.js"
-import { SvgNode, svgNode } from "../../svg-node.js"
 import { DegreesToRadians } from "../../geometry.js"
 
 
@@ -64,7 +63,7 @@ export class Arc extends LineLikeRenderer {
     const cx = (start.x + end.x) / 2 + sign * px * d
     const cy = (start.y + end.y) / 2 + sign * py * d
 
-    let startAngle = Math.atan2(start.y - cy, start.x - cx)
+    const startAngle = Math.atan2(start.y - cy, start.x - cx)
     let endAngle   = Math.atan2(end.y - cy, end.x - cx)
     if (isCW) {
       while (endAngle < startAngle) endAngle += 2 * Math.PI
@@ -88,14 +87,11 @@ export class Arc extends LineLikeRenderer {
       return ` M ${start.x} ${start.y} L ${end.x} ${end.y}`
     }
 
-    const { cx, cy, r, startAngle, endAngle, isCW } = geo
+    const { r, startAngle, endAngle, isCW } = geo
     const rx = r
     const ry = r
     const turn = isCW ? 1 : 0
     const tangentOffset = isCW ? Math.PI / 2 : -Math.PI / 2
-
-    const startTangent = startAngle + tangentOffset
-    const endTangent   = endAngle + tangentOffset
 
     // Markers mutate pos to the arrow base — use that as the arc endpoint
     // so the stroke meets the arrow exactly.

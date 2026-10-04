@@ -311,11 +311,6 @@ function doBacktrace(e: RTE, sourceCode?: string) {
   webBacktrace(e, sourceCode)
 }
 
-function stripLocation(k: string, v: any) {
-  if (k === `location`) return undefined
-  return v
-}
-
 function showPauseMessage(msg: string) {
   pauseOverlay.textContent = msg
   pauseOverlay.style.display = `flex`
@@ -344,7 +339,7 @@ function renderResult(output: any) {
 
 let runNumber  = 0
 let lastOutput: any = null
-let shapeMap   = new Map<string, any>()
+const shapeMap   = new Map<string, any>()
 
 function getEventTimes(dispatcher: Dispatcher): number[] {
   const times = new Set<number>()
@@ -384,8 +379,6 @@ const controller = new PlaybackController(
   () => run()
 )
 
-let currentDispatcher: Dispatcher | null = null
-
 /** Preview: render shapes up to t=0 without starting animations */
 function preview() {
   controller.cancel()
@@ -394,7 +387,6 @@ function preview() {
   highlightErrorLine(null)
   lastOutput = null
   shapeMap.clear()
-  currentDispatcher = null
   resetTheme()
   Palette.setCurrent(`sunset`)
   applyPaletteToTheme(Palette.getCurrentColors())
@@ -406,7 +398,6 @@ function preview() {
     errorArea.textContent = ``
 
     const dispatcher = new Dispatcher(logger, svgHolder, runNumber++)
-    currentDispatcher = dispatcher
 
     try {
       const { output, stylesheets } = dispatcher.start(parsed.ast)

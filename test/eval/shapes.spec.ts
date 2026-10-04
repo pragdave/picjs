@@ -1,7 +1,6 @@
 import { valueOf, newDispatcher } from "../helpers/eval.js"
 import { TNumber, TPosition, TA } from "../../src/types.js"
 import { ParseStatus } from "../../src/parser.js"
-import { RTE } from "../../src/runtime_error.js"
 import { parseToMockAST } from "../helpers/ast.js"
 import { LineLike } from "../../src/shapes.js"
 
@@ -147,9 +146,10 @@ describe(`connector positioning`, () => {
 describe(`dependency graph integration`, () => {
   it(`records a with-constraint dependency`, () => {
     const d = runProgram(`Box\nBox with .w at (100, 200)`)
-    const [box1, box2] = d.shapes()
+    const [box1] = d.shapes()
     const graph = (d as any).shapeGraph.dependencyGraph
-    // box2 depends on nothing (its constraint target is a position literal, not a shape)
+    // the second box's constraint target is a position literal, not a shape,
+    // so nothing depends on the first
     expect(graph.dependentsOf(box1)).toHaveLength(0)
   })
 
@@ -319,7 +319,7 @@ describe(`multiple labels`, () => {
 
   it(`child label receives parent dimensions`, () => {
     const d = runProgram(`Box width 5 height 3 "hello"`)
-    const [box, label] = d.shapes()
+    const label = d.shapes()[1]
     expect(label.params._parentWidth).toBe(5)
     expect(label.params._parentHeight).toBe(3)
   })
@@ -597,7 +597,7 @@ describe(`Label font_size syntax`, () => {
 
   it(`rich label with font_size computes valid dimensions`, () => {
     const d = runProgram(`box ("hello" font_size 12pt)`)
-    const [box, label] = d.shapes()
+    const label = d.shapes()[1]
     expect(label.shapeName).toBe(`SLabel`)
     expect(label.width).toBeGreaterThan(0)
     expect(label.height).toBeGreaterThan(0)

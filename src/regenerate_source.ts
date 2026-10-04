@@ -131,22 +131,14 @@ export class RegenerateSource extends Visitor{
 
   VisitQualifiedRValue(node: AST.QualifiedLValue) {
     const lv = this.accept(node.left)
+    const qualifier = node.right
 
-    switch (node.right.qtype) {
-      case `attr`:
-        const attr = this.accept(node.right.qvalue)
-      return `${lv}.${attr}`
-
-      case `call`:
-        const args = node.right.qvalue.map(a => this.accept(a))
-      return `${lv}(${args.join(`, `)})`
-
-      case `index`:
-        const index = this.accept(node.right.qvalue)
-      return `${lv}[${index}]`
-
+    switch (qualifier.qtype) {
+      case `attr`:  return `${lv}.${this.accept(qualifier.qvalue)}`
+      case `call`:  return `${lv}(${qualifier.qvalue.map(arg => this.accept(arg)).join(`, `)})`
+      case `index`: return `${lv}[${this.accept(qualifier.qvalue)}]`
       default:
-        throw new Error(`Unknown qualifier type "${node.right}"`)
+        throw new Error(`Unknown qualifier type "${(qualifier as AST.Qualifier).qtype}"`)
     }
   }
 
@@ -225,8 +217,8 @@ export class RegenerateSource extends Visitor{
 
   visit_object(obj: Record<string, AST.Node>) {
     const result = []
-    for (let k of Object.keys(obj)) {
-      let value = this.accept(obj[k])
+    for (const k of Object.keys(obj)) {
+      const value = this.accept(obj[k])
       result.push([k, value])
     }
     return result
@@ -234,10 +226,6 @@ export class RegenerateSource extends Visitor{
 
   visitListOfStatements(list: AST.Node[]) {
     return list.reduce((_, s) => this.accept(s), null)
-  }
-
-  value() {
-    return null
   }
 
 }

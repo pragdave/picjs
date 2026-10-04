@@ -1,6 +1,5 @@
 import { AnimationRunner } from "../animation_runner.js"
 import { Dispatcher } from "../dispatcher.js"
-import { SBase } from "../shapes.js"
 import { ExportedTimelineEntry, Timeline } from "../timeline.js"
 import { TLEntry, Animation } from "./tlentries.js"
 

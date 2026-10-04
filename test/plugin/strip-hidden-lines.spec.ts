@@ -1,4 +1,3 @@
-import { jest } from "@jest/globals"
 
 const stripHiddenLines = (source: string) =>
   source.replace(/^[ \t]*\/\/-\n([\s\S]*?)\n[ \t]*\/\/\+\n?/gm, "")

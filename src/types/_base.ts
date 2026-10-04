@@ -14,9 +14,6 @@ export enum AnimationStyle  {
 }
 
 export type TA = TBase<any>
-type AttributeAccessors = { [attr_name: string]: () => TA }
-
-const BaseAttrs: AttributeAccessors = {}
 
 export class TBase<ValueType, > {
   attrs: Record<string, any>

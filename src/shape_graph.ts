@@ -1,7 +1,6 @@
 import { Dispatcher } from "./dispatcher.js"
 import * as Shapes    from "./shapes.js"
 import { WithConstraint }    from "./shapes/_base.js"
-import * as AST       from "./ast.js"
 import { Renderer }   from "./render.js"
 import { DependencyGraph } from "./dependency_graph.js"
 

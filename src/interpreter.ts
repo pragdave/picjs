@@ -9,6 +9,7 @@ import { Dispatcher } from "./dispatcher.js"
 import  * as AST from "./ast.js"
 
 import {
+  type TA,
   TBase,
   TBool,
   TColor,
@@ -28,9 +29,6 @@ import { isKnownAttribute, acceptedAttributesFor } from "./shapes/attributes.js"
 
 import { RegenerateSource, ordinal } from "./regenerate_source.js"
 
-
-interface InterpreterResult {
-}
 
 const BinOps: { [op: string]: string } = {
   "+": `opPlus`,
@@ -60,7 +58,6 @@ export class Interpreter extends Visitor{
   binding: Binding
   cssPrefix: string
   stylesheets: string[]
-  result:    InterpreterResult | null = null
 
   constructor(
     public dispatcher: Dispatcher, 
@@ -86,10 +83,6 @@ export class Interpreter extends Visitor{
 
   getCurrentBinding() {
     return this.binding
-  }
-
-  value() {
-    return this.result
   }
 
   VisitArrayExpression(node: AST.ArrayExpression) {
@@ -542,49 +535,26 @@ export class Interpreter extends Visitor{
     return this.accept(node.body)
   }
 
-  // for LValues, we need the name of the last qualifier, not the value of applying it.
+  // A qualified lvalue that is evaluated rather than assigned to (the `a.b`
+  // in `a.b.c = 1`) means the same as the rvalue. VisitAssignment deals with
+  // the qualifier that is assigned to.
   VisitQualifiedLValue(node: AST.QualifiedLValue) {
-    const lv = this.accept(node.left)
-    switch (node.right.qtype) {
-      case `attr`:
-        const attr = this.accept(node.right.qvalue)
-        return lv.getAtAttr(attr)
-
-      case `call`:
-        const args = node.right.qvalue.map((a: AST.Node) => this.accept(a))
-        return this.callFunction(lv, args)
-
-      case `index`:
-        const index = this.accept(node.right.qvalue)
-        return lv.getAtIndex(index)
-
-      default:
-        throw new Error(`Unknown qualifier type "${node.right}"`)
-    }
+    return this.applyQualifier(this.accept(node.left), node.right)
   }
-
 
   VisitQualifiedRValue(node: AST.QualifiedRValue) {
-    const lv = this.accept(node.left)
-    switch (node.right.qtype) {
-      case `attr`:
-        const attr = this.accept(node.right.qvalue)
-        return lv.getAtAttr(attr)
-
-      case `call`:
-        const args = node.right.qvalue.map((a: AST.Node) => this.accept(a))
-        return this.callFunction(lv, args)
-
-      case `index`:
-        const index = this.accept(node.right.qvalue)
-        return lv.getAtIndex(index)
-
-      default:
-        throw new Error(`Unknown qualifier type "${node.right}"`)
-    }
+    return this.applyQualifier(this.accept(node.left), node.right)
   }
 
-
+  private applyQualifier(value: TA, qualifier: AST.Qualifier) {
+    switch (qualifier.qtype) {
+      case `attr`:  return value.getAtAttr(this.accept(qualifier.qvalue))
+      case `call`:  return this.callFunction(value, qualifier.qvalue.map(arg => this.accept(arg)))
+      case `index`: return value.getAtIndex(this.accept(qualifier.qvalue))
+      default:
+        throw new Error(`Unknown qualifier type "${(qualifier as AST.Qualifier).qtype}"`)
+    }
+  }
 
   VisitRange(node: AST.Range) {
     const start = this.accept(node.start)
@@ -1076,10 +1046,10 @@ export class Interpreter extends Visitor{
   }
 
 
-  callFunction(callee: TNative | TFunction, args: any[]) {
+  callFunction(callee: TA, args: TA[]) {
     if (callee instanceof TFunction)  {
       if (args.length < callee.formals.length) {
-        let msg = `function called with ${args.length} parameters, ` +
+        const msg = `function called with ${args.length} parameters, ` +
           `but it takes ${callee.formals.length} parameter`
         throw new RTE(msg)
       }
@@ -1104,7 +1074,7 @@ export class Interpreter extends Visitor{
 
   visit_object(obj: any) {
     const result: { [name: string]: any } = {}
-    for (let k of Object.keys(obj)) {
+    for (const k of Object.keys(obj)) {
       if (k.startsWith(`_`))  // don't evaluate things such as line.start which are dynamic
         result[k] = obj[k]
       else {

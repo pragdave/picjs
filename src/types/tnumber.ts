@@ -1,5 +1,5 @@
 import { Interpreter } from "../interpreter.js"
-import { AnimationStyle, TBase, TA, TInterpolatable } from "./_base.js"
+import { AnimationStyle, TA, TInterpolatable } from "./_base.js"
 import { TBool } from "./tbool.js"
 import { TNative } from "./tnative.js"
 

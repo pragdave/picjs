@@ -1,4 +1,4 @@
-import { testParse, string, number as n, shape, label } from "../helpers/ast.js"
+import { testParse, string, shape } from "../helpers/ast.js"
 
 function richLabel(args: any) {
   return {

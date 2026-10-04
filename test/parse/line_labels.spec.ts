@@ -1,6 +1,5 @@
-import { testParse, arc, line, string, number } from "../helpers/ast.js"
+import { testParse, arc, line, string } from "../helpers/ast.js"
 
-const n = (val: number) => number(val)
 const s = (val: string) => string(val)
 
 // Helper to build expected _labels array entry

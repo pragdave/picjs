@@ -63,10 +63,6 @@ export class SPolyline extends LineLike {
     return [fx * this.width, fy * this.height]
   }
 
-  cropStrategy() {
-    return `centerToCenter`
-  }
-
   // Return point and tangent at a given fraction along the full path (0.0 to 1.0)
   pointAtPercent(t: number): PathPoint {
     const pts = this.allPoints

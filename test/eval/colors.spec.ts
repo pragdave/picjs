@@ -1,5 +1,5 @@
 import {
-  parse, converter, formatHex, formatHex8, clampGamut
+  parse, converter, formatHex8, clampGamut
 } from 'culori'
 import type { Color } from 'culori'
 import { valueOf } from "../helpers/eval.js"

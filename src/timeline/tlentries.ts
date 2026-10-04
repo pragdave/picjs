@@ -122,10 +122,7 @@ export class Pause extends TLEntry {
 
 export class Animation extends TLEntry {
   constructor(animation: AnimatorBase, start: number) {
-    super(animation, start, start + animation.duration())
-    if (isNaN(this.end)) {
-      debugger
-    }
+    super(animation, start, start + animation.duration())   // the animator checks its duration
   }
 
   process(timeline: Timeline) {

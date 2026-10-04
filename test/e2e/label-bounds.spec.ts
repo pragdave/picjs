@@ -14,15 +14,22 @@ async function inkVsBox(page: Page, source: string) {
     const [vx, vy, vw, vh] = s.getAttribute('viewBox')!.split(/\s+/).map(Number)
     const t = s.querySelector('text') as SVGTextElement
     const b = t.getBBox()
-    return { overLeft: vx - b.x, overRight: (b.x + b.width) - (vx + vw) }
+    return {
+      overLeft:   vx - b.x,
+      overRight:  (b.x + b.width) - (vx + vw),
+      overTop:    vy - b.y,
+      overBottom: (b.y + b.height) - (vy + vh),
+    }
   })
 }
 
 for (const src of [`Label "Title" .h1`, `Label "Title"`, `Label "Wider text here" .h2`]) {
   test(`text stays inside its box: ${src}`, async ({ page }) => {
-    const { overLeft, overRight } = await inkVsBox(page, src)
+    const { overLeft, overRight, overTop, overBottom } = await inkVsBox(page, src)
     expect(overLeft).toBeLessThanOrEqual(0.001)
     expect(overRight).toBeLessThanOrEqual(0.001)
+    expect(overTop).toBeLessThanOrEqual(0.001)
+    expect(overBottom).toBeLessThanOrEqual(0.001)
   })
 }
 

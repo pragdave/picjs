@@ -442,9 +442,9 @@ export class Geometry {
   }
 
   getLineStartEnd(line: LineLike) {
-    let startAsType, startAsXY
+    let startAsType
     let endAsType, endAsXY
-    let cropStart = false, cropEnd = false
+    let cropEnd = false
     const dir = line._layoutDirection ?? this.direction
     let newDirection = dir
 
@@ -468,7 +468,7 @@ export class Geometry {
     }
 
     // at this point, `startAsType` is a Txxx value
-    [startAsXY, cropStart] = this.convertToPosition(startAsType)
+    const [uncroppedStart, cropStart] = this.convertToPosition(startAsType)
 
     if (!line._end) {
       if (line.successorShape) {
@@ -477,7 +477,7 @@ export class Geometry {
         ;[endAsXY, cropEnd] = this.convertToPosition(endAsType)
       }
       else {
-        [endAsXY, newDirection] = line.getEndAndNewDirection(startAsXY, dir)
+        [endAsXY, newDirection] = line.getEndAndNewDirection(uncroppedStart, dir)
       }
     }
     else {
@@ -487,9 +487,7 @@ export class Geometry {
       ;[endAsXY, cropEnd] = this.convertToPosition(endAsType)
     }
 
-    if (cropStart)
-      startAsXY = startAsType.cropLineTo(line, endAsXY)
-
+    const startAsXY = cropStart ? startAsType.cropLineTo(line, endAsXY) : uncroppedStart
 
     if (cropEnd)
       endAsXY = endAsType.cropLineTo(line, startAsXY)

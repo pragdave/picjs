@@ -4,7 +4,6 @@ import * as Convert from "./attribute_converters.js"
 import { RenderParameters } from "../../types.js"
 import * as Shape from "../../shapes.js"
 import { XY } from "../../position.js"
-import { SvgNode, svgNode } from "../../svg-node.js"
 
 
 export class Line extends LineLikeRenderer {
@@ -69,8 +68,8 @@ export class Line extends LineLikeRenderer {
     const start = this.attrs.start
     const end = this.attrs.end
 
-    let deltaX = Math.abs(start.x - end.x)
-    let deltaY = Math.abs(start.y - end.y)
+    const deltaX = Math.abs(start.x - end.x)
+    const deltaY = Math.abs(start.y - end.y)
 
     if (deltaX < MIN_STEP_OFFSET || deltaY < MIN_STEP_OFFSET) {
       return this.straightLine()
@@ -80,7 +79,7 @@ export class Line extends LineLikeRenderer {
     let angle
 
     if (deltaX > deltaY) {
-      let split = start.x + (end.x - start.x) / 2
+      const split = start.x + (end.x - start.x) / 2
       cmds = cmds.concat(`L ${split} ${start.y}`)
       cmds = cmds.concat(`L ${split} ${end.y}`)
       angle = 0
@@ -88,7 +87,7 @@ export class Line extends LineLikeRenderer {
         angle += Math.PI
     }
     else {
-      let split = start.y + (end.y - start.y) / 2
+      const split = start.y + (end.y - start.y) / 2
       cmds = cmds.concat(`L ${start.x} ${split}`)
       cmds = cmds.concat(`L ${end.x} ${split}`)
       angle = Math.PI / 2
@@ -113,8 +112,8 @@ export class Line extends LineLikeRenderer {
     const start = this.attrs.start
     const end = this.attrs.end
 
-    let deltaX = Math.abs(start.x - end.x)
-    let deltaY = Math.abs(start.y - end.y)
+    const deltaX = Math.abs(start.x - end.x)
+    const deltaY = Math.abs(start.y - end.y)
 
     if (deltaX < MIN_STEP_OFFSET || deltaY < MIN_STEP_OFFSET) {
       return this.straightLine()
@@ -130,16 +129,16 @@ export class Line extends LineLikeRenderer {
       this.pendingMarkers.push(this.markerPath(this.attrs.line_end, end, 1, angle))
     }
 
-    let head = `M ${start.x} ${start.y}`
+    const head = `M ${start.x} ${start.y}`
     let mid
-    let tail = `, ${end.x} ${end.y}`
+    const tail = `, ${end.x} ${end.y}`
 
     if (deltaX > deltaY) {
-      let split = start.x + (end.x - start.x) / 2
+      const split = start.x + (end.x - start.x) / 2
       mid = `C ${split} ${start.y}, ${split} ${end.y}`
     }
     else {
-      let split = start.y + (end.y - start.y) / 2
+      const split = start.y + (end.y - start.y) / 2
       mid = `C ${start.x} ${split}, ${end.x} ${split}`
     }
 

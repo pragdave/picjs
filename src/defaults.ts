@@ -1,4 +1,3 @@
-/* eslint-disable max-len */
 const ShapeDefaults = `
 SArc    | stroke      | stroke_width     | linestyle | turn  | rotation | reveal_time | hide_time
 -----------------------------------------------------------------------

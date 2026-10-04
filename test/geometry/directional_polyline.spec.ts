@@ -1,4 +1,4 @@
-import { valueOf, newDispatcher } from "../helpers/eval.js"
+import { newDispatcher } from "../helpers/eval.js"
 import { parseToMockAST } from "../helpers/ast.js"
 import { ParseStatus } from "../../src/parser.js"
 import { SPolyline } from "../../src/shapes/spolyline.js"

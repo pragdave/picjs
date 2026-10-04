@@ -66,7 +66,7 @@ export const jpLanguage = StreamLanguage.define({
     }
 
     // Operators: arithmetic, comparison, assignment
-    if (stream.match(/^[+\-*\/=<>!%^&|~]+/)) return "operator"
+    if (stream.match(/^[+\-*/=<>!%^&|~]+/)) return "operator"
 
     // Consume one unrecognised character
     stream.next()

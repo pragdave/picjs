@@ -1,5 +1,4 @@
 import { Dispatcher } from "./dispatcher.js"
-import { Interpreter } from "./interpreter.js"
 import { PlaybackController } from "./jp-web-playback.js"
 import { nullLogger, calculateBoundingBox, viewBoxFromBounds, unionBounds } from "./render-utils.js"
 import { computeSlotColors, generateCSS } from "./palette-css.js"
@@ -208,7 +207,7 @@ export class PicjsPlayer {
         this.controlsBar.style.display = "none"
       }
     } catch (e) {
-      try { dispatcher.getAnimationRunner().stop() } catch {}
+      dispatcher.getAnimationRunner().stop()
       const msg = e instanceof Error ? e.message : String(e)
       console.error("picjs player error:", msg)
       this.controlsBar.style.display = "none"

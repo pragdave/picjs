@@ -101,7 +101,7 @@ export class MoveToAnimator extends AnimatorBase {
     super(params)
 
     if (!cardinal)
-      debugger
+      throw new Error(`internal error: a move needs the cardinal point to move`)
     this.shape = shape
     this.cardinal = <Cardinals>cardinal
     if (place instanceof TPosition)

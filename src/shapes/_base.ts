@@ -17,30 +17,11 @@ export type ProcessedWithConstraint =  {
 
 export type WithConstraint = AST.ASTWithConstraint | ProcessedWithConstraint
 
-export const CardinalAttributes = {
-  c: 1,
-  n: 1,
-  ne: 1,
-  e: 1,
-  se: 1,
-  s: 1,
-  sw: 1,
-  w: 1,
-  nw: 1,
-}
+export const CardinalAttributes = new Set([ `c`, `n`, `ne`, `e`, `se`, `s`, `sw`, `w`, `nw` ])
 
-const OtherGeometryAttributes = {
-  x: 1,
-  y: 1,
-  width: 1,
-  height: 1,
-}
+const OtherGeometryAttributes = new Set([ `x`, `y`, `width`, `height` ])
 
-const StyleAttributes = {
-  thickness: 1,
-  fill: 1,
-  stroke: 1,
-}
+const StyleAttributes = new Set([ `thickness`, `fill`, `stroke` ])
 
 const AbbreviatedAttrNames: { [abbrev: string]: string } = {
   ht: `height`,
@@ -134,9 +115,9 @@ export class SBase extends TBase<null> {
         if (resolved in this.attrs) return new TBool(true)
         if (resolved in this.params) return new TBool(true)
         if (resolved in this.hidden) return new TBool(true)
-        if (CardinalAttributes.hasOwnProperty(resolved)) return new TBool(true)
-        if (OtherGeometryAttributes.hasOwnProperty(resolved)) return new TBool(true)
-        if (StyleAttributes.hasOwnProperty(resolved)) return new TBool(true)
+        if (CardinalAttributes.has(resolved)) return new TBool(true)
+        if (OtherGeometryAttributes.has(resolved)) return new TBool(true)
+        if (StyleAttributes.has(resolved)) return new TBool(true)
         if ((`handle_attr_` + resolved) in this) return new TBool(true)
         return new TBool(false)
       })
@@ -195,7 +176,7 @@ export class SBase extends TBase<null> {
       args._class || `.normal`
     )
 
-    for (let k of Object.keys(args)) {
+    for (const k of Object.keys(args)) {
       const val = args[k]
       if (k.endsWith(`_slot`)) {
         this.params[k] = val
@@ -357,15 +338,15 @@ export class SBase extends TBase<null> {
 
     name = AbbreviatedAttrNames[name] || name
 
-    if (CardinalAttributes.hasOwnProperty(name)) {
+    if (CardinalAttributes.has(name)) {
       if (!(value instanceof TPosition))
         throw new RTE(`the ".${name}" attribute needs a position, but I got ${value.toNative()}`)
       this.dispatcher.setCardinalToPoint(this, name as Cardinals, value.x, value.y)
     }
-    else if (OtherGeometryAttributes.hasOwnProperty(name)) {
+    else if (OtherGeometryAttributes.has(name)) {
       this.dispatcher.updateOtherGeometry(this, name, value.toNative())
     }
-    else if (StyleAttributes.hasOwnProperty(name)) {
+    else if (StyleAttributes.has(name)) {
       this.dispatcher.updateShapeStyle(this, name, value)
     }
     else {
@@ -457,7 +438,7 @@ export class SBase extends TBase<null> {
 
   corner(cardinal: Cardinals) {
     this.checkAnchorSet()
-    let [dx, dy] = this.getCardinalOffsetsFromAnchor(cardinal)
+    const [dx, dy] = this.getCardinalOffsetsFromAnchor(cardinal)
     let x = (this.anchorX || 0) + dx
     let y = (this.anchorY || 0) + dy
 
@@ -572,33 +553,19 @@ export class SBase extends TBase<null> {
     const center = this.c
     const { x, y } = this.cropLineRelative(center, target)
     return { x: x + center.x, y: y + center.y }
-
-
-    // const center = this.c
-    // switch (line.cropStrategy()) {
-    //  case `centerToCenter`:
-    //    return this.cropLineBetweenCenters(center, target)
-
-    //  case `cardinalToCardinal`:
-    //    return this.cropLineBetweenCardinals(center, target)
-
-    //  default:
-    //    throw new Error(`Unknown crop strategy ${line.cropStrategy()}`)
-    // }
   }
 
-
   cropLineRelative(center: XY, target: XY) {
-    let halfWidth = this.width / 2
-    let halfHeight = this.height / 2
-    let startX = center.x
-    let startY = center.y
+    const halfWidth = this.width / 2
+    const halfHeight = this.height / 2
+    const startX = center.x
+    const startY = center.y
 
-    let endX = target.x
-    let endY = target.y
+    const endX = target.x
+    const endY = target.y
 
-    let deltaX = endX - startX
-    let deltaY = endY - startY
+    const deltaX = endX - startX
+    const deltaY = endY - startY
 
     let xSide, ySide
 
@@ -619,8 +586,8 @@ export class SBase extends TBase<null> {
       return { x: xSide, y: 0 }
 
     // now see if it intercepts the top/bottom, or the left/right
-    let xRatio = xSide / deltaX
-    let h = deltaY * xRatio
+    const xRatio = xSide / deltaX
+    const h = deltaY * xRatio
 
     if (Math.abs(h) <= Math.abs(ySide))
       return {
@@ -634,68 +601,6 @@ export class SBase extends TBase<null> {
         }
   }
 
-
-  cropLineBetweenCenters(center: XY, target: XY) {
-    let halfWidth = this.width / 2
-    let halfHeight = this.height / 2
-    let startX = center.x
-    let startY = center.y
-
-    let endX = target.x    // assumes toSpex calculates corners & offsets
-    let endY = target.y
-
-    let deltaX = endX - startX
-    let deltaY = endY - startY
-
-    let xSide, ySide
-
-    if (deltaX < 0)
-      xSide = -halfWidth
-    else
-      xSide = halfWidth
-
-    if (deltaY < 0)
-      ySide = -halfHeight
-    else
-      ySide = halfHeight
-
-    if (Math.abs(deltaX) < 0.01)
-      return { x: 0, y: ySide }
-
-    if (Math.abs(deltaY) < 0.01)
-      return { x: xSide, y: 0 }
-
-    // now see if it intercepts the top/bottom, or the left/right
-    let xRatio = xSide / deltaX
-    let h = deltaY * xRatio
-
-    if (Math.abs(h) <= Math.abs(ySide))
-      return {
-        x: center.x + xSide + center.x,
-        y: center.y + h,
-        orientation: `ns`,
-      }
-      else
-        return {
-          x: center.x + deltaX / deltaY * ySide,
-          y: center.y + ySide,
-          orientation: `ew`,
-        }
-  }
-
-  // work out which side the line passes through, and return that cardinal
-  // cropLineBetweenCenters(center: XY, target: XY) {
-  //   const lineDeltaY = target.y - center.y
-  //   const lineDeltaX = target.x - center.x
-  //   const lineSlope = Math.abs(lineDeltaY / lineDeltaX)
-  //   const slopeToCorner = this.height / this.width
-
-  //   if (lineSlope > slopeToCorner) {
-  //     return (lineDeltaY < 0) ? this.n : this.s
-  //   }
-
-  //   return (lineDeltaX < 0) ? this.w : this.e
-  // }
 
   toString() {
     const shapeAttrs = formatAttrs(this.params)

@@ -195,7 +195,7 @@ const Palettes: Record<string, PaletteDefinition> = {
 const PALETTE_COLOR_RE = /^([bf][1-8]|native-fg|native-bg)$/
 
 // Maps background hex → foreground hex for auto-text coloring
-let bgToFgMap: Map<string, string> = new Map()
+const bgToFgMap: Map<string, string> = new Map()
 
 // Current palette name
 let currentPaletteName = `sunset`

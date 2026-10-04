@@ -7,7 +7,7 @@ type Converter = (position: RenderParameters, attrs: Shape.Args) => void
 
 export function run(position: RenderParameters, incomingAttrs: Shape.Args, converters: Converter[]) {
   const result = { ...incomingAttrs }
-  for (let converter of converters) {
+  for (const converter of converters) {
     converter(position, result)
   }
   if (result.opacity !== undefined)
@@ -101,22 +101,7 @@ export function font(_position: RenderParameters, attrs: Shape.Args) {
 //------------------------------------------------------------ linestyle
 
 export function linestyle(_position: RenderParameters, attrs: Shape.Args) {
-  const lineThickness = attrs[`stroke_width`] || 1
-  let dashSpec 
-
-  switch (attrs.linestyle) {
-    case `dotted`:
-      const dotLen = 0.75 * lineThickness
-      dashSpec = [ dotLen, 4 * dotLen ]
-      break
-    case `dashed`:
-      const gapLen = lineThickness
-      dashSpec = [ 2 * gapLen, gapLen ]
-      break
-    case `solid`:
-    default:
-      dashSpec = undefined
-  }
+  const dashSpec = dashPattern(attrs.linestyle, attrs[`stroke_width`] || 1)
 
   if (dashSpec) {
     attrs[`stroke_dasharray`] = dashSpec
@@ -125,6 +110,20 @@ export function linestyle(_position: RenderParameters, attrs: Shape.Args) {
     delete attrs[`stroke_dasharray`]
   }
   delete attrs.linestyle
+}
+
+// The dash pattern for a line style, in proportion to the line's thickness
+function dashPattern(linestyle: string, thickness: number): number[] | undefined {
+  switch (linestyle) {
+    case `dotted`: {
+      const dot = 0.75 * thickness
+      return [ dot, 4 * dot ]
+    }
+    case `dashed`:
+      return [ 2 * thickness, thickness ]
+    default:
+      return undefined    // solid
+  }
 }
 
 ////------------------------------------------------------------ rotatio

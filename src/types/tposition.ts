@@ -5,7 +5,9 @@ import { TNumber } from "./tnumber.js"
 import { XY } from "../position.js"
 
 
-const ScalarFn:Record<string, Function> = {
+type ScalarOp = (a: number, b: number) => number
+
+const ScalarFn: Record<string, ScalarOp> = {
   plus:   (a: number, b: number) => a + b,
   minus:  (a: number, b: number) => a - b,
   times:  (a: number, b: number) => a * b,
@@ -104,7 +106,6 @@ export class TPosition extends TBase<XY> {
   doOp(other: TA, op: string) {
     if (other instanceof TPosition)
       return this.applyPositionOp(other, op)
-    // eslint-disable-next-line no-undef
     if (other instanceof TList)
       return this.applyListOp(other, op)
 

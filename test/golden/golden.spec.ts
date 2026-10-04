@@ -15,7 +15,7 @@ import { parseToAST, ParseStatus } from "../../src/parser.js"
 import { parse as pegParse } from "../../src/peg_parser/jp.js"
 import { Dispatcher } from "../../src/dispatcher.js"
 import { nullLogger } from "../../src/render-utils.js"
-import { svgNode, serialize } from "../../src/svg-node.js"
+import { serialize } from "../../src/svg-node.js"
 import { resetTheme, applyPaletteToTheme } from "../../src/defaults.js"
 import { Palette } from "../../src/palette.js"
 

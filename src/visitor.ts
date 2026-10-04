@@ -18,8 +18,6 @@ export abstract class Visitor {
   private stepLimit = 500_000
   private cancelled = false
 
-  abstract value() : any;
-
   cancel() {
     this.cancelled = true
   }
@@ -30,12 +28,12 @@ export abstract class Visitor {
 
   start(tree: AST.Node) {
     try {
-      return this.accept(tree) || this.value()
+      return this.accept(tree) ?? null
     }
     catch (e) {
       const loc = this.lastLocation
       if ((e instanceof RTE) && loc) {
-        (e.context || (e.context = []))    // ava doesn't recognize ??=...
+        e.context ??= []
         e.context.push({ loc, interpreter: this })
       }
 
@@ -44,11 +42,8 @@ export abstract class Visitor {
   }
 
   accept(tree: AST.Node) {
-    if (!tree) {
-      debugger
-      throw new Error(`Missing
-                      tree`)
-    }
+    if (!tree)
+      throw new Error(`internal error: asked to evaluate a missing syntax tree node`)
 
     if (this.cancelled)
       throw new RTE(`execution cancelled`)
@@ -64,18 +59,7 @@ export abstract class Visitor {
     return (this[`Visit${type}`] || this.error).call(this, tree)
   }
 
-  error(tree: AST.Node) {
-    try {
-      console.error(`No visitor defined for node type ${tree.type}
-                    ${JSON.stringify(tree, null, 4)}`)
-    }
-    catch (e) {
-      console.error(`No visitor defined for node type ${tree.type}
-                    ${tree}`)
-    }
-    throw new Error(`No visitor defined for node type ${tree.type}
-                    ${tree}`)
+  error(tree: AST.Node): never {
+    throw new Error(`internal error: no visitor for syntax tree nodes of type "${tree.type}"`)
   }
 }
-
-

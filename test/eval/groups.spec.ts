@@ -1,5 +1,5 @@
 import { valueOf, newDispatcher } from "../helpers/eval.js"
-import { TNumber, TPosition, TA } from "../../src/types.js"
+import { TNumber, TA } from "../../src/types.js"
 import { ParseStatus } from "../../src/parser.js"
 import { parseToMockAST } from "../helpers/ast.js"
 import { SGroup } from "../../src/shapes/sgroup.js"
@@ -22,10 +22,6 @@ function t(ip: string, expected: TA) {
 
 function n(val: number) {
   return new TNumber(val)
-}
-
-function pos(x: number, y: number) {
-  return new TPosition(n(x), n(y))
 }
 
 describe(`groups`, () => {

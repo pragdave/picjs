@@ -51,7 +51,7 @@ export class SArc extends LineLike {
 
 
   getEndAndNewDirection(startAsXY: XY, direction: UnitVector) {
-    let { x,  y } = startAsXY
+    const { x,  y } = startAsXY
     // dx = cos α, dy = sin α, where α is the clockwise angle from the x axis 
     let { x: dx,  y: dy } = direction 
     let endX, endY
@@ -79,10 +79,6 @@ export class SArc extends LineLike {
     return { x: this.end.x - center.x, y: this.end.y - center.y }
   }
   
-  cropStrategy() {
-    return `centerToCenter`
-  }
-
   private arcGeometry() {
     const start = this.start
     const end = this.end
@@ -105,7 +101,7 @@ export class SArc extends LineLike {
     const cx = midX + sign * px * d
     const cy = midY + sign * py * d
 
-    let startAngle = Math.atan2(start.y - cy, start.x - cx)
+    const startAngle = Math.atan2(start.y - cy, start.x - cx)
     let endAngle = Math.atan2(end.y - cy, end.x - cx)
     if (this.turn === `cw`) {
       while (endAngle < startAngle) endAngle += 2 * Math.PI

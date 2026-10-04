@@ -1,5 +1,3 @@
-// @flow
-
 import { RTE } from "./runtime_error.js"
 import { TBase, TA } from "./types.js"
 import { BuiltinConstants, BuiltinFunctions } from "./builtins.js"
@@ -60,14 +58,11 @@ export class Binding {
     throw new RTE(`Variable '${name}' is not defined`)
   }
 
-  findBindingContaining(name: string) {
-    let home: Binding | null = this
-    while (home) {
-      if (name in home.bindings)
-        break
-      home = home.outer
-    }
-    return home
+  // The binding where `name` is defined: this one, or one it is nested in
+  findBindingContaining(name: string): Binding | null {
+    if (name in this.bindings)
+      return this
+    return this.outer?.findBindingContaining(name) ?? null
   }
 
   // defaults are different to variables:

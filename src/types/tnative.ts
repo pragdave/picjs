@@ -30,7 +30,7 @@ export class TNative extends TBase<NativeCallback> {
   }
 
   workoutParamsCount() {
-    for (let name of this.formals) {
+    for (const name of this.formals) {
       this.maxParams++
       if (!name.startsWith(`[`))
         this.minParams++

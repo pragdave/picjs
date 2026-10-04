@@ -1,5 +1,4 @@
 import { renderToStringAsync as renderToString } from "../../src/render-to-string.js"
-import { IdGenerator } from "../../src/svg-node.js"
 
 describe("Element ID generation", () => {
   it("does not add IDs by default", async () => {

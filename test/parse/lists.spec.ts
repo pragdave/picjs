@@ -5,8 +5,6 @@ import {
 } from "../helpers/ast.js"
 
 
-const rv = `Expression`
-
 testParse(`[]`, list([]))
 testParse(`[1]`, list([ number(1) ]))
 testParse(`[1, 2]`, list([ number(1), number(2) ]))

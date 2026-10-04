@@ -7,16 +7,6 @@ async function renderDiagram(page: Page, source: string) {
   }, source)
 }
 
-function parseSvgAttr(html: string, tag: string, attr: string): number[] {
-  const re = new RegExp(`<${tag}[^>]*?${attr}="([^"]+)"`, 'g')
-  const values: number[] = []
-  let m
-  while ((m = re.exec(html)) !== null) {
-    values.push(parseFloat(m[1]))
-  }
-  return values
-}
-
 test.beforeEach(async ({ page }) => {
   await page.goto('/test/e2e/fixture.html')
   await page.waitForFunction(() => (window as any).__ready === true)

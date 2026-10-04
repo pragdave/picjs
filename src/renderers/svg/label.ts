@@ -1,5 +1,4 @@
 import { SvgBase } from "./_base.js"
-import { RTE } from "../../runtime_error.js"
 import * as Convert from "./attribute_converters.js"
 import * as Shape from "../../shapes.js"
 

@@ -15,7 +15,6 @@ const A = variableValue(`a`)
 const a = identifier(`a`)
 
 const B = variableValue(`b`)
-const b = identifier(`b`)
 
 const X = variableValue(`x`)
 const x = identifier(`x`)
@@ -24,7 +23,6 @@ const fill = identifier(`fill`)
 
 const n1 = number(1)
 const n2 = number(2)
-const n3 = number(3)
 
 const testProgram: [ string, any ][] = [
 

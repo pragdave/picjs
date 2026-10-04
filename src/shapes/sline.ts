@@ -75,17 +75,6 @@ export class SLine extends LineLike {
     return [ endAsXY, direction ]
   }
 
-  cropStrategy() {
-    switch (this.line_path) {
-      case `smooth`:
-      case `stepped`:
-        return `cardinalToCardinal`
-
-      default:
-        return `centerToCenter`
-    }
-  }
-
   // Return point and tangent angle at a given fraction along the line (0.0 to 1.0)
   pointAtPercent(t: number) {
     const start = this.start

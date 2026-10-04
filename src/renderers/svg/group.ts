@@ -1,5 +1,4 @@
 import { SvgNode, svgNode } from "../../svg-node.js"
-import { SGroup } from "../../shapes/sgroup.js"
 import { RenderParameters } from "../../types.js"
 import { SvgBase } from "./_base.js"
 import * as Shape from "../../shapes.js"
