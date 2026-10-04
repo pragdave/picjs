@@ -1,4 +1,5 @@
 {
+  "include": ["src/**/*.ts", "test/**/*.ts"],
   "compilerOptions": {
       "allowJs": true,
       "skipLibCheck": true,
@@ -9,7 +10,10 @@
       "module": "NodeNext",
       "moduleResolution": "NodeNext",
       "resolveJsonModule": true,
-      "isolatedModules": true,    "lib": [ "es2019", "dom", "es2017.object" ],
-      "target": "ES6"
+      "isolatedModules": true,
+      "lib": [ "es2020", "dom", "dom.iterable" ],
+      // ES2022 and later change how class fields are initialised, which
+      // the shapes depend on: see SLabel.setupParams
+      "target": "ES2020"
   }
 }
