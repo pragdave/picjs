@@ -1,5 +1,6 @@
 import { RTE } from "./runtime_error.js"
-import { TPosition } from "./types.js"
+import { TBase, TPosition } from "./types.js"
+import type * as AST from "./ast.js"
 import { LineLike, SArc, SBase, SGroup, SLine, SPoint, SPolyline } from "./shapes.js"
 import type { LineLabelConstraint } from "./shapes/_base.js"
 import { Cardinals, XY } from "./position.js"
@@ -8,6 +9,21 @@ import { Dispatcher } from "./dispatcher.js"
 
 
 export const DegreesToRadians = Math.PI / 180
+
+// Where something is, and, if it is a shape, the shape a line to it is cropped to
+interface Place {
+  point: XY
+  cropTo?: SBase
+}
+
+function isPoint(value: unknown): value is XY {
+  return typeof value === `object` && value !== null && !(value instanceof TBase) &&
+    typeof (value as XY).x === `number` && typeof (value as XY).y === `number`
+}
+
+function nameForErrors(value: unknown) {
+  return value instanceof TBase ? value.nameForErrors() : String(value)
+}
 
 // class GeometryChange {
 //   constructor(
@@ -182,6 +198,8 @@ export class Geometry {
       this.dispatcher.recordDependency(shape, target)
       target = target.handle_attr_c()
     }
+    if (!(target instanceof TPosition))
+      throw new RTE(`"with ... at" needs a position or a shape, but this is ${nameForErrors(target)}`)
 
     // Handle "with self.element" syntax for groups
     if (constraint.type === `WithConstraint` && constraint.selfElement && shape instanceof SGroup) {
@@ -306,122 +324,63 @@ export class Geometry {
   }
 
   positionPolyline(poly: SPolyline) {
-    // Resolve start
-    let startAsType: any = undefined
-    let startXY: XY = { x: 0, y: 0 }
-    let cropStart = false
-
-    if (poly._start) {
-      startAsType = poly.valueOfTree(poly._start)
-      if (startAsType instanceof SBase)
-        this.dispatcher.recordDependency(poly, startAsType)
-      ;[startXY, cropStart] = this.convertToPosition(startAsType)
-    }
-
-    // Handle implicit start (no `from`) — resolve from predecessor/lastShape
-    if (!startAsType) {
-      if (poly.predecessorShape) {
-        // Re-resolve from predecessor (it may have moved during animation)
-        const fromShape = poly.predecessorShape
-        if (fromShape instanceof LineLike) {
-          startXY = { ...fromShape.end }
-        } else {
-          const c = fromShape.c
-          const firstWP = poly._waypoints?.[0]
-          if (firstWP?.type === 'DirectionalWaypoint') {
-            const dir = firstWP.components[0].direction
-            const projection = { x: c.x + dir.x, y: c.y + dir.y }
-            startXY = fromShape.cropLineTo(poly, projection)
-          } else {
-            startXY = { ...c }
-          }
-        }
-      } else if (poly.params.start !== undefined) {
-        // Already resolved during initial layout with no dynamic dependency — keep it
-        startXY = poly.params.start
-      } else {
-        // Initial layout: resolve from lastShape
-        const fromShape = this.lastShape
-        if (fromShape instanceof LineLike) {
-          startXY = { ...fromShape.end }
-        } else {
-          const c = fromShape.c
-          const firstWP = poly._waypoints?.[0]
-          if (firstWP?.type === 'DirectionalWaypoint') {
-            const dir = firstWP.components[0].direction
-            const projection = { x: c.x + dir.x, y: c.y + dir.y }
-            startXY = fromShape.cropLineTo(poly, projection)
-          } else {
-            startXY = { ...c }
-          }
-        }
-      }
-      cropStart = false
-    }
+    // Resolve the start: `from`, or else the shape before the line
+    let start: Place
+    if (poly._start)
+      start = this.endpoint(poly, poly._start)
+    else if (poly.predecessorShape)    // it may have moved during animation
+      start = { point: this.implicitPolylineStart(poly, poly.predecessorShape) }
+    else if (poly.params.start !== undefined)
+      start = { point: poly.params.start }   // resolved in the initial layout, with nothing to follow
+    else
+      start = { point: this.implicitPolylineStart(poly, this.lastShape) }
+    let startXY = start.point
 
     // Resolve each waypoint
-    const waypoints: XY[] = []
-    const waypointTypes: any[] = []
-    const cropFlags: boolean[] = []
+    const waypoints: Place[] = []
+    const lastPoint = () => waypoints.length > 0 ? waypoints[waypoints.length - 1].point : startXY
 
     for (const wpThunk of poly._waypoints || []) {
-      if (wpThunk.type === 'DirectionalWaypoint') {
+      if (wpThunk.type === `DirectionalWaypoint`) {
         // Directional waypoint: resolve relative to previous point
-        const prev = waypoints.length > 0 ? waypoints[waypoints.length - 1] : startXY
-        let x = prev.x, y = prev.y
+        let { x, y } = lastPoint()
         for (const comp of wpThunk.components) {
-          const dist = poly.valueOfTree(comp.distance).toNative()
+          const dist = poly.distance(comp.distance)
           x += comp.direction.x * dist
           y += comp.direction.y * dist
         }
-        waypoints.push({ x, y })
-        waypointTypes.push(null)
-        cropFlags.push(false)
-      } else if (wpThunk.type === 'DirectionalUntilWaypoint') {
-        // "then west until even with target" — go in direction until aligned
-        const prev = waypoints.length > 0 ? waypoints[waypoints.length - 1] : startXY
-        const targetType = poly.valueOfTree(wpThunk.target)
-        if (targetType instanceof SBase)
-          this.dispatcher.recordDependency(poly, targetType)
-        const [targetXY] = this.convertToPosition(targetType)
+        waypoints.push({ point: { x, y } })
+      }
+      else if (wpThunk.type === `DirectionalUntilWaypoint`) {
+        // "then west until even with target": go in direction until aligned
+        const prev = lastPoint()
+        const target = this.endpoint(poly, wpThunk.target).point
         const dir = wpThunk.direction
-        if (dir.x !== 0 && dir.y === 0) {
-          // Horizontal movement: go until x matches target
-          waypoints.push({ x: targetXY.x, y: prev.y })
-        } else if (dir.x === 0 && dir.y !== 0) {
-          // Vertical movement: go until y matches target
-          waypoints.push({ x: prev.x, y: targetXY.y })
-        } else {
-          // Diagonal: use whichever axis the direction is primarily along
-          waypoints.push({ x: targetXY.x, y: targetXY.y })
-        }
-        waypointTypes.push(null)
-        cropFlags.push(false)
-      } else {
-        const wpType = poly.valueOfTree(wpThunk)
-        if (wpType instanceof SBase)
-          this.dispatcher.recordDependency(poly, wpType)
-        const [xy, crop] = this.convertToPosition(wpType)
-        waypoints.push(xy)
-        waypointTypes.push(wpType)
-        cropFlags.push(crop)
+        if (dir.x !== 0 && dir.y === 0)        // horizontal: until x matches
+          waypoints.push({ point: { x: target.x, y: prev.y } })
+        else if (dir.x === 0 && dir.y !== 0)   // vertical: until y matches
+          waypoints.push({ point: { x: prev.x, y: target.y } })
+        else
+          waypoints.push({ point: { x: target.x, y: target.y } })
+      }
+      else {
+        waypoints.push(this.endpoint(poly, wpThunk))
       }
     }
 
-    // Crop start to first waypoint's direction
-    if (cropStart && waypoints.length > 0)
-      startXY = startAsType.cropLineTo(poly, waypoints[0])
+    // Crop the start toward the first waypoint, and each waypoint that is a
+    // shape toward the point before it
+    if (start.cropTo && waypoints.length > 0)
+      startXY = start.cropTo.cropLineTo(poly, waypoints[0].point)
 
-    // Crop each waypoint that references a shape
-    for (let i = 0; i < waypoints.length; i++) {
-      if (cropFlags[i]) {
-        const prev = i === 0 ? startXY : waypoints[i - 1]
-        waypoints[i] = waypointTypes[i].cropLineTo(poly, prev)
-      }
-    }
+    const points: XY[] = []
+    waypoints.forEach((wp, i) => {
+      const prev = i === 0 ? startXY : points[i - 1]
+      points.push(wp.cropTo ? wp.cropTo.cropLineTo(poly, prev) : wp.point)
+    })
 
     poly.start = startXY
-    poly.waypoints = waypoints
+    poly.waypoints = points
     poly.params.closed = poly.closed
 
     // Set anchor to bounding-box center (not centroid) so cardinal
@@ -435,55 +394,38 @@ export class Geometry {
   }
 
   getLineStartEnd(line: SLine | SArc) {
-    let startAsType
-    let endAsType, endAsXY
-    let cropEnd = false
     const dir = line._layoutDirection ?? this.direction
     let newDirection = dir
 
-    if (!line._start) {
-      // Use the stored predecessor shape if available (set by resolveImplicitConnectorDependencies),
-      // falling back to lastShape during the initial layout pass when it hasn't been set yet.
+    // Without a `from`, start from the predecessor if there is one (set by
+    // resolveImplicitConnectorDependencies), or else the last shape drawn
+    let start: Place
+    if (line._start) {
+      start = this.endpoint(line, line._start)
+    }
+    else {
       const fromShape = line.predecessorShape ?? this.lastShape
-      if (fromShape instanceof LineLike) {
-        // Line-to-line chaining: start at the predecessor's end point
-        startAsType = { ...fromShape.end }
-      } else {
-        const c = fromShape.c
-        const projection = { x: c.x + dir.x, y: c.y + dir.y }
-        startAsType = fromShape.cropLineTo(line, projection)
-      }
-    }
-    else {
-      startAsType = line.valueOfTree(line._start)
-      if (startAsType instanceof SBase)
-        this.dispatcher.recordDependency(line, startAsType)
-    }
-
-    // at this point, `startAsType` is a Txxx value
-    const [uncroppedStart, cropStart] = this.convertToPosition(startAsType)
-
-    if (!line._end) {
-      if (line.successorShape) {
-        // Crop to the successor shape's edge facing back toward the start
-        endAsType = line.successorShape
-        ;[endAsXY, cropEnd] = this.convertToPosition(endAsType)
-      }
+      if (fromShape instanceof LineLike)     // a chain of lines: start where it ends
+        start = { point: { ...fromShape.end } }
       else {
-        [endAsXY, newDirection] = line.getEndAndNewDirection(uncroppedStart, dir)
+        const c = fromShape.c
+        start = { point: fromShape.cropLineTo(line, { x: c.x + dir.x, y: c.y + dir.y }) }
       }
     }
+
+    let end: Place
+    if (line._end)
+      end = this.endpoint(line, line._end)
+    else if (line.successorShape)            // crop to its edge facing the start
+      end = this.convertToPosition(line.successorShape)
     else {
-      endAsType = line.valueOfTree(line._end)
-      if (endAsType instanceof SBase)
-        this.dispatcher.recordDependency(line, endAsType)
-      ;[endAsXY, cropEnd] = this.convertToPosition(endAsType)
+      const [point, direction] = line.getEndAndNewDirection(start.point, dir)
+      end = { point }
+      newDirection = direction
     }
 
-    const startAsXY = cropStart ? startAsType.cropLineTo(line, endAsXY) : uncroppedStart
-
-    if (cropEnd)
-      endAsXY = endAsType.cropLineTo(line, startAsXY)
+    const startAsXY = start.cropTo ? start.cropTo.cropLineTo(line, end.point) : start.point
+    const endAsXY = end.cropTo ? end.cropTo.cropLineTo(line, startAsXY) : end.point
 
     // OK to use updated startAsXY because it's colinear
 
@@ -495,20 +437,41 @@ export class Geometry {
     return [startAsXY, endAsXY]
   }
 
-  // Return the position corresponding to a either a TPosition or a shape.
-  // If it's a shape, the second part of the return is set to `true` to 
-  // indicate that cropping is needed
-  //
-  convertToPosition(place: TPosition | SLine | SBase | XY): [ XY, boolean ] {
+  // Where a line's from, to or then is: a position, or a shape, or a point
+  // already worked out. For a shape, it is the shape's center, and the line
+  // is cropped to the shape's edge (cropTo).
+  convertToPosition(place: unknown): Place {
     if (place instanceof TPosition)
-      return [place.toNative(), false]
-
-    if (place instanceof SLine || place instanceof SArc || place instanceof SPolyline)
-      return [place.end, false]
-
+      return { point: place.toNative() }
+    if (place instanceof LineLike)
+      return { point: place.end }
     if (place instanceof SBase)
-      return [place.c, true]
+      return { point: place.c, cropTo: place }
+    if (isPoint(place))
+      return { point: place }
+    throw new RTE(`A line can only go from, to, or through a position or a shape, but this is ${nameForErrors(place)}`)
+  }
 
-    return [place, false]
+  // Evaluate a line's from, to or then, following it if it is a shape
+  private endpoint(line: LineLike, tree: AST.Node): Place {
+    const value = line.valueOfTree(tree)
+    if (value instanceof SBase)
+      this.dispatcher.recordDependency(line, value)
+    return this.convertToPosition(value)
+  }
+
+  // A polyline with no `from` starts where the shape before it ends: a line's
+  // end, or the edge of anything else, toward its first step if that is a
+  // direction, or else its center
+  private implicitPolylineStart(poly: SPolyline, fromShape: SBase): XY {
+    if (fromShape instanceof LineLike)
+      return { ...fromShape.end }
+    const c = fromShape.c
+    const first = poly._waypoints?.[0]
+    if (first?.type === `DirectionalWaypoint`) {
+      const dir = first.components[0].direction
+      return fromShape.cropLineTo(poly, { x: c.x + dir.x, y: c.y + dir.y })
+    }
+    return { ...c }
   }
 }

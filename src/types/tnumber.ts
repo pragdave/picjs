@@ -1,3 +1,4 @@
+import { RTE } from "../runtime_error.js"
 import { Interpreter } from "../interpreter.js"
 import { AnimationStyle, TA, TInterpolatable, BinaryOperatorMethod } from "./_base.js"
 import { TBool } from "./tbool.js"
@@ -11,7 +12,8 @@ import { functionArgument, numberArgument } from "./arguments.js"
 
 ///////////////////////////////////////////////////////////////////////////////////
 
-type OpFn = (a:number, b:number) => any
+type OpFn = (a: number, b: number) => number
+type ComparisonFn = (a: number, b: number) => boolean
 
 export class TNumber extends TInterpolatable<number> {
 
@@ -96,12 +98,10 @@ export class TNumber extends TInterpolatable<number> {
     )
   }
 
-  checkAndApplyBool(other: TA , op: string, opFn: OpFn) {
-    if (other  instanceof TNumber)
+  checkAndApplyBool(other: TA, op: string, opFn: ComparisonFn) {
+    if (other instanceof TNumber)
       return new TBool(opFn(this.value, other.value))
-    throw new Error(
-      `Cannot compare "${this.value} using ${op} ${other.constructor.name} (${other.value})"`
-    )
+    throw new RTE(`"${op}" can only compare a number with a number, but this is ${other.nameForErrors()}`)
   }
 
   interpolate(other: TNumber, ratio: number) {

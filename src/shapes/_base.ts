@@ -97,15 +97,11 @@ const ParamAliases: { [name: string]: string } = {
 
 let sID = 1
 
-function formatAttrs(attrs: Record<string, any>) {
+function formatAttrs(attrs: ShapeParams) {
   const result = []
   for (const k of Object.keys(attrs).sort()) {
-    let val = attrs[k]
-    if (val)
-      val = val.toString()
-    else
-      val = `␀`
-    result.push(`${k} ${val}`)
+    const val = attrs[k]
+    result.push(`${k} ${val ? String(val) : `␀`}`)
   }
   return result.join(` | `)
 }
@@ -154,7 +150,7 @@ export class SBase extends TBase<null> {
   relativeY?: number      // Y offset from parent group anchor
 
   // Original AST args for re-evaluation when variables change
-  astArgs?: Record<string, any>
+  astArgs?: AST.ShapeArgs
 
   // ---------------------------------
   //

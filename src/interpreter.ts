@@ -30,6 +30,8 @@ import { SGroup } from "./shapes/sgroup.js"
 import { isKnownAttribute, acceptedAttributesFor } from "./shapes/attributes.js"
 
 import { RegenerateSource, ordinal } from "./regenerate_source.js"
+import type { ShapeParams } from "./shapes/_base.js"
+import { numberArgument } from "./types/arguments.js"
 
 
 const BinOps: { [op: string]: BinaryOperatorMethod } = {
@@ -59,6 +61,10 @@ export class Interpreter extends Visitor{
 
   binding: Binding
   cssPrefix: string
+
+  // Re-evaluating a shape's arguments mustn't make a shape again: it gets the
+  // one this syntax tree node last made
+  private lastShapeMadeBy = new WeakMap<AST.Shape, Shapes.SBase>()
   stylesheets: string[]
 
   constructor(
@@ -191,7 +197,8 @@ export class Interpreter extends Visitor{
   }
 
   VisitColorLiteralWithModel(node: AST.ColorLiteralWithModel) {
-    const args = node.params.map((n: AST.Node) => this.accept(n).value)
+    const args = node.params.map((n: AST.Node, i) =>
+      numberArgument(node.model, `${ordinal(i + 1)} value`, this.accept(n)))
     return TColor.fromColorModel(node.model, args)
   }
 
@@ -366,7 +373,7 @@ export class Interpreter extends Visitor{
     this.binding = outerBinding
 
     // 8. Evaluate group attributes (opacity, etc.)
-    const groupArgs: Record<string, any> = {}
+    const groupArgs: ShapeParams = {}
     const behindAST = node.args?._behind
     if (node.args) {
       const argsForEval = { ...node.args }
@@ -624,8 +631,9 @@ export class Interpreter extends Visitor{
 
 
   VisitShape(node: AST.Shape) {
-    if (this.dispatcher.isReEvaluating && (node as any)._memoizedShape)
-      return (node as any)._memoizedShape
+    const memoized = this.lastShapeMadeBy.get(node)
+    if (this.dispatcher.isReEvaluating && memoized)
+      return memoized
 
     const { label, _shapeLabels: shapeLabels, _labels: lineLabels, _behind: behindAST, _same: hasSame } = node.args
 
@@ -696,7 +704,7 @@ export class Interpreter extends Visitor{
       this.createLineLabels(shape, lineLabels)
     }
 
-    Object.defineProperty(node, '_memoizedShape', { value: shape, configurable: true })
+    this.lastShapeMadeBy.set(node, shape)
     return shape
   }
 
@@ -722,7 +730,7 @@ export class Interpreter extends Visitor{
   }
 
   // Check if a label AST has any styling attributes beyond just text
-  private labelHasStyling(labelArgs: Record<string, any>): boolean {
+  private labelHasStyling(labelArgs: AST.ShapeArgs): boolean {
     const stylingKeys = Object.keys(labelArgs).filter(k => k !== 'text' && !k.startsWith('_'))
     return stylingKeys.length > 0
   }
@@ -771,7 +779,7 @@ export class Interpreter extends Visitor{
   private createCombinedLabel(parent: Shapes.SBase, labels: AST.Shape[]) {
     // Evaluate each label's text
     const texts: string[] = []
-    let firstEvaluatedArgs: Record<string, any> | null = null
+    let firstEvaluatedArgs: ShapeParams | null = null
 
     for (const label of labels) {
       const evaluated = this.visit_object(label.args)
@@ -805,13 +813,13 @@ export class Interpreter extends Visitor{
   }
 
   // Create labels for lines/arcs with path-based positioning
-  private createLineLabels(line: Shapes.SBase, labels: { text: AST.Node, pathPercent: number, side: string | null, _labelArgs?: Record<string, any> }[]) {
+  private createLineLabels(line: Shapes.SBase, labels: AST.LineLabel[]) {
     // Resolve default sides for labels without explicit positioning
     const resolvedLabels = this.resolveLineLabelSides(labels)
 
     for (const labelDef of resolvedLabels) {
       // Create the label AST node, merging any rich label attrs (font, align, etc.)
-      const args: Record<string, any> = { text: labelDef.text }
+      const args: AST.ShapeArgs = { text: labelDef.text }
       if (labelDef._labelArgs) {
         Object.assign(args, labelDef._labelArgs)
       }
@@ -840,7 +848,7 @@ export class Interpreter extends Visitor{
   // - 1 label with no side: center (or outside for arcs)
   // - 2 labels with no sides: above/below
   // - explicit sides are preserved
-  private resolveLineLabelSides(labels: { text: AST.Node, pathPercent: number, side: string | null, _labelArgs?: Record<string, any> }[]): { text: AST.Node, pathPercent: number, side: string, _labelArgs?: Record<string, any> }[] {
+  private resolveLineLabelSides(labels: AST.LineLabel[]): (AST.LineLabel & { side: string })[] {
     const n = labels.length
 
     if (n === 1 && !labels[0].side) {
@@ -1017,7 +1025,7 @@ export class Interpreter extends Visitor{
     return result
   }
 
-  evaluateArgs(astArgs: Record<string, any>, binding: Binding) {
+  evaluateArgs(astArgs: AST.ShapeArgs, binding: Binding): ShapeParams {
     const saveBinding = this.binding
     this.binding = binding
     const result = this.visit_object(astArgs)
@@ -1066,13 +1074,16 @@ export class Interpreter extends Visitor{
     }
   }
 
-  visit_object(obj: any) {
-    const result: { [name: string]: any } = {}
+  // Evaluate each attribute's expression to a plain value; a palette color
+  // brings its slot too. Entries starting with _ are kept as they are: some,
+  // such as a line's ends, are evaluated later, by the geometry.
+  visit_object(obj: AST.ShapeArgs | AST.Parameters): ShapeParams {
+    const result: ShapeParams = {}
     for (const k of Object.keys(obj)) {
-      if (k.startsWith(`_`))  // don't evaluate things such as line.start which are dynamic
+      if (k.startsWith(`_`))
         result[k] = obj[k]
       else {
-        const value = this.accept(obj[k])
+        const value = this.accept(obj[k] as AST.Node)
         result[k] = value.toNative()
         if (value instanceof TColor && value.paletteSlot) {
           result[`_${k}_slot`] = value.paletteSlot

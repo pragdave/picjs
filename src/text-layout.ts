@@ -18,7 +18,8 @@ interface SimpleMarkdownParser {
 }
 
 // Handle CJS/ESM interop - simple-markdown exports are under .default in ESM
-const MD: SimpleMarkdownParser = (MDModule as any).default || MDModule
+const MD: SimpleMarkdownParser =
+  (MDModule as { default?: SimpleMarkdownParser }).default ?? (MDModule as SimpleMarkdownParser)
 
 export type StyledRun = { text: string, type: string, url?: string }
 

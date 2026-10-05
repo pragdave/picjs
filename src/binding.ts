@@ -8,7 +8,7 @@ import { AttributeDefaults, DefaultsType } from "./defaults.js"
 // "Shape" to "SBase".
 const ShapeBase = `SBase`
 
-function jsonify(_key: any) {
+function jsonify(_key: string) {
   return `a binding`
 }
 
@@ -168,12 +168,10 @@ export class Binding {
 
   //////////////////////////////////////////////////////////////////////
   
-  checkIsTyped(name: string, value: any) {
+  // Variables hold picjs values; native code that stores anything else is a bug
+  checkIsTyped(name: string, value: unknown) {
     if (!(value instanceof TBase)) {
-      throw new RTE(
-        `Value of "${name}" (${value}) is not a jp type\n\n` +
-        this.dump()
-      )
+      throw new Error(`internal error: the value of "${name}" (${value}) is not a picjs value\n\n` + this.dump())
     }
   }
 

@@ -3,6 +3,7 @@ import * as Shapes    from "./shapes.js"
 import { WithConstraint }    from "./shapes/_base.js"
 import { Renderer }   from "./render.js"
 import { DependencyGraph } from "./dependency_graph.js"
+import type * as AST from "./ast.js"
 
 export class ShapeGraph {
 
@@ -18,7 +19,7 @@ export class ShapeGraph {
     this.dispatcher = dispatcher
   }
 
-  create(name: string, astArgs: Record<string, any> | undefined, args: Shapes.Args, withConstraint?: WithConstraint | null) {
+  create(name: string, astArgs: AST.ShapeArgs | undefined, args: Shapes.ShapeParams, withConstraint?: WithConstraint | null) {
     const ctr = Shapes.ShapeConstructors[name]
 
     // const ctr = (Shapes as Shapes.ShapeModule)[name])

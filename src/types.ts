@@ -34,7 +34,8 @@ registerHasMethodFactory((host) =>
 import { Location } from "./location.js"
 import { XY } from "./position.js"
 
-export type LoggerInterface = (location: Location | undefined, result: any, source?: string) => void 
+// Shows what `??` prints: the result, and the source that gave it
+export type LoggerInterface = (location: Location | undefined, result: string, source?: string) => void 
 
 export interface RenderParameters {
   cardinal: `c`

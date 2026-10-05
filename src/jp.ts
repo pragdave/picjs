@@ -1,6 +1,7 @@
+import type { Location } from "./location.js"
 import {parse, createRunner } from "./index.js"
 
-function logger(loc: any, result: any, src: any) {
+function logger(loc: Location | undefined, result: string, src?: string) {
   const line = loc?.start?.line ?? `?`
   const col = loc?.start?.column ?? `?`
   if (src) {

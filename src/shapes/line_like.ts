@@ -1,3 +1,4 @@
+import { RTE } from "../runtime_error.js"
 import { SBase }from "./_base.js"
 import { TNumber, TPosition } from "../types.js"
 import { XY } from "../position.js"
@@ -32,6 +33,14 @@ export abstract class LineLike extends SBase {
   get stroke(): string    { return this.param(`stroke`) }
   get line_path()         { return this.params.line_path }
   abstract get length(): number
+
+  // A distance in a line given by directions (line right 2), evaluated
+  distance(tree: AST.Node): number {
+    const value = this.valueOfTree(tree)
+    if (!(value instanceof TNumber))
+      throw new RTE(`A line's distance must be a number, but this is ${value.nameForErrors()}`)
+    return value.value
+  }
 
   handle_attr_thickness() { return new TNumber(this.thickness) }
   handle_attr_length()    { return new TNumber(this.length) }

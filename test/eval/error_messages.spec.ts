@@ -91,3 +91,24 @@ describe(`native functions given the right arguments`, () => {
     expect(valueOf(`v = []\n(3).times(i => v.push(i))`)).toEqual([0, 1, 2])
   })
 })
+
+describe(`where shapes and lines are placed`, () => {
+  it.each([
+    [`line from 3 to (1, 1)`,                 /A line can only go from, to, or through a position or a shape, but this is 3/],
+    [`line from (0, 0) to ~red`,              /but this is #ff0000/],
+    [`line from (0, 0) then 3 then (1, 1)`,   /but this is 3/],
+    [`line right "x"`,                        /A line's distance must be a number, but this is x/],
+    [`Box with .nw at 3`,                     /"with ... at" needs a position or a shape, but this is 3/],
+  ])(`%s is an error`, (src, message) => {
+    expect(() => runProgram(src)).toThrow(message)
+  })
+})
+
+describe(`colors and comparisons given the wrong kind of value`, () => {
+  it.each([
+    [`v = rgb("x", 1, 2)`,     /rgb needs a number for its 1st value, but was given x/],
+    [`v = 3 < ~red`,           /"<" can only compare a number with a number, but this is #ff0000/],
+  ])(`%s`, (src, message) => {
+    expect(() => runProgram(src)).toThrow(message)
+  })
+})

@@ -15,6 +15,8 @@ import { AnimationRunner } from "./animation_runner.js"
 import * as TLE from "./timeline/tlentries.js"
 import * as AST from "./ast.js"
 import type { TA } from "./types.js"
+import type { ShapeParams } from "./shapes/_base.js"
+import type { StatusCallback } from "./timeline/timeline_runner.js"
 
 export interface LayoutPlacement {
   shape: SBase
@@ -89,7 +91,7 @@ export class Dispatcher {
     return result
   }
 
-  evaluateArgs(astArgs: Record<string, any>, binding: Binding) {
+  evaluateArgs(astArgs: AST.ShapeArgs, binding: Binding) {
     return this.interpreter.evaluateArgs(astArgs, binding)
   }
 
@@ -99,7 +101,7 @@ export class Dispatcher {
   
   //////////////////////////////////////////////////  shapeGraph
   
-  addShape(shapeName: string, astArgs: Record<string, any> | undefined, args: AST.Parameters, withConstraint?: WithConstraint | null) {
+  addShape(shapeName: string, astArgs: AST.ShapeArgs | undefined, args: ShapeParams, withConstraint?: WithConstraint | null) {
     return this.shapeGraph.create(shapeName, astArgs, args, withConstraint)
   }
 
@@ -195,23 +197,9 @@ export class Dispatcher {
   }
 
 
-  runTimeline(statusCallback: (...args: any[]) => void) {
-    const runner = this.timeline.getRunner(statusCallback)
-
-    runner.runAll()
-    return runner
-  }
-
-  prepareTimeline(statusCallback: (...args: any[]) => void) {
-    const runner = this.timeline.getRunner(statusCallback)
-    runner.pause()
-    runner.runAll()
-    return runner
-  }
-
   // Used after applyTimelineUpTo(t) to create a runner that can play from t.
   // The runner is paused (waiting for resume()) and won't re-process already-applied entries.
-  runTimelineFrom(t: number, statusCallback: (...args: any[]) => void) {
+  runTimelineFrom(t: number, statusCallback: StatusCallback) {
     const runner = this.timeline.getRunner(statusCallback)
     runner.startFrom(t)
     return runner
@@ -366,7 +354,7 @@ export class Dispatcher {
     return this.interpreter.getAllDefaultAttributes(category, base, klass)
   }
 
-  log(location: Location | undefined, value: any, source?: string ) {
+  log(location: Location | undefined, value: string, source?: string ) {
     this.logger(location, value, source)
   }
 

@@ -42,7 +42,8 @@ export interface Base {
   location?: Location
 }
 
-export type Parameters = { [paramname: string]: any }
+// An animation's parameters (take, ease, followsPrevious), as expressions
+export type Parameters = { [name: string]: Node }
 
 type FormalParameterList = Identifier[] 
 export type ExpressionOrBlock = ExpressionList | Node
@@ -147,7 +148,7 @@ export interface Aside extends Base {
 export interface Group extends Base {
   type: `Group`
   body: ExpressionList | Node
-  args?: Record<string, any>
+  args?: ShapeArgs
   withConstraint?: WithConstraint | null    // the parser gives null for none
 }
 
@@ -197,7 +198,7 @@ export interface MoveTo extends Base {
   type: `MoveTo`
   what: Node,     // a shape, or a point on one (a.nw): see Interpreter.moveTarget
   place: Node,
-  params: { [name: string]: any }
+  params: Parameters
 }
 
 export interface MoveBy extends Base {
@@ -205,7 +206,7 @@ export interface MoveBy extends Base {
   what: Node,
   direction: { x: number, y: number },
   distance: Node,
-  params: { [name: string]: any }
+  params: Parameters
 }
 
 export interface Number extends Base {

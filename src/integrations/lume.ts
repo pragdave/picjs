@@ -9,12 +9,14 @@
  * ```
  */
 
-// This is a placeholder for Lume's types - in a real setup, you'd import from "lume/core.ts"
+// The parts of Lume's types this uses (the real ones are in "lume/core.ts")
+interface Page {
+  content?: unknown
+  sourcePath?: string
+}
+
 interface Site {
-  hooks: {
-    addMarkdownItPlugin: (plugin: (md: any) => void) => void
-  }
-  process(extensions: string[], callback: (pages: any[]) => Promise<void>): void
+  process(extensions: string[], callback: (pages: Page[]) => Promise<void>): void
 }
 
 interface PicjsOptions {

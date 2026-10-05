@@ -11,6 +11,7 @@ import { Palette } from "../palette.js"
 import { parseFontSize } from "../renderers/svg/attribute_converters.js"
 import { layoutText } from "../text-layout.js"
 import type { TA } from "../types.js"
+import type { SvgNode } from "../svg-node.js"
 
 // const DefaultsForShape = { 
 //     fill: `pink`,
@@ -122,15 +123,15 @@ export class SLabel extends SBase {
         text.setAttribute(key, String(value))
       }
       // Copy children
-      const renderChild = (child: any): Node => {
+      const renderChild = (child: SvgNode | string): Node => {
         if (typeof child === 'string') {
           return document.createTextNode(child)
         }
         const el = document.createElementNS(svgNS, child.tag)
-        for (const [k, v] of Object.entries(child.attrs || {})) {
+        for (const [k, v] of Object.entries(child.attrs)) {
           el.setAttribute(k, String(v))
         }
-        for (const c of child.children || []) {
+        for (const c of child.children) {
           el.appendChild(renderChild(c))
         }
         return el

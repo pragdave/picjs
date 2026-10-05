@@ -38,7 +38,7 @@ import { TNative } from "./tnative.js"
 import { TNumber } from "./tnumber.js"
 import { TPosition } from "./tposition.js"
 import { RTE } from "../runtime_error.js"
-import { MoveToAnimator, createAttributeAnimator } from "../animators/_base.js"
+import { MoveToAnimator, createAttributeAnimator, type AnimationParams } from "../animators/_base.js"
 import type { Interpreter } from "../interpreter.js"
 import type { LayoutPlacement } from "../dispatcher.js"
 import type { SBase } from "../shapes.js"
@@ -255,7 +255,7 @@ export class TLayout extends TBase<TFunction> {
   }
 
   private animationParams() {
-    const params: Record<string, any> = {}
+    const params: AnimationParams = {}
     if (this.attrs.take !== undefined) params.take = this.attrs.take.toNative()
     if (this.attrs.ease !== undefined) params.ease = this.attrs.ease.toNative()
     return params

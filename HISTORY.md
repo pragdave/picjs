@@ -17,6 +17,9 @@
   color, so the copy still follows the light or dark theme
 * Fix a label's `font` returning a broken font rather than the one it was given; asking a shape for
   a color it doesn't have (a line's `fill`) is an error that says so
+* A line's `from`, `to` and `then`, and a shape's `with ... at`, must be a position or a shape:
+  anything else (`line from 3`) was taken as a point, which broke the drawing. A line's distances
+  (`line right 2`), a color model's values (`rgb(...)`) and comparisons (`<`) check theirs too
 * Native functions (`sin`, `polar`, a color's `darken` and `spin`, a number's `times`, a list's
   `each` and `map`, a range's `ease`, and others) report an argument of the wrong kind, rather
   than giving a wrong answer or failing obscurely; so do assignments of the wrong kind to a

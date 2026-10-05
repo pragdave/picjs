@@ -35,7 +35,7 @@ export class SLine extends LineLike {
       let dx = 0, dy = 0
       for (const comp of waypoint.components) {
         const dir = comp.direction
-        const dist = this.dispatcher.valueOf(comp.distance, this.bindingAtCreation).toNative()
+        const dist = this.distance(comp.distance)
         dx += dir.x * dist
         dy += dir.y * dist
       }

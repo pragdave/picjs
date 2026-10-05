@@ -3,6 +3,9 @@ import { Dispatcher } from "../dispatcher.js"
 import { ExportedTimelineEntry, Timeline } from "../timeline.js"
 import { TLEntry, Animation } from "./tlentries.js"
 
+// Told when playback starts, pauses (with a message, perhaps) and ends
+export type StatusCallback = (status: string, time: number, message?: string | null) => void
+
 export class TimelineRunner {
     paused = false
     index = 0
@@ -13,7 +16,7 @@ export class TimelineRunner {
     private timeline: Timeline,
     private dispatcher: Dispatcher,
     private animationRunner: AnimationRunner,
-    private statusCallback: (status: string, time: number, message?: string | null) => void
+    private statusCallback: StatusCallback
   ) {
     this.entries = timeline.entries()
   }

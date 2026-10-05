@@ -2,10 +2,10 @@ import { MinPriorityQueue, PriorityQueueItem } from "@datastructures-js/priority
 import { AnimationRunner } from "./animation_runner.js"
 import { AnimatorBase, MoveByAnimator, MoveToAnimator, createAttributeAnimator } from "./animators/_base.js"
 import { TNumber } from "./types.js"
-import { XY } from "./position.js"
+import { Cardinals, XY } from "./position.js"
 
 // import { Geometry } from "./geometry.js"
-import { TimelineRunner } from "./timeline/timeline_runner.js"
+import { TimelineRunner, type StatusCallback } from "./timeline/timeline_runner.js"
 import * as TLE from "./timeline/tlentries.js"
 import { BigNumber } from "./timeline/tlentries.js"
 import { Dispatcher } from "./dispatcher.js"
@@ -139,7 +139,7 @@ export class Timeline {
     this.addToTimeline(new TLE.UpdateShapeNoAnimation(shape, time, attr, value))
   }
 
-  setCardinalToPoint(shape: SBase, cardinal: string, pos: XY) {
+  setCardinalToPoint(shape: SBase, cardinal: Cardinals, pos: XY) {
     this.addToTimeline(new TLE.PositionShapeNoAnimation(shape, this.recordingTime, cardinal, pos))
     this.notePositionChange(shape)
   }
@@ -165,13 +165,13 @@ export class Timeline {
     this.addToTimeline(new TLE.Pause(message, this.recordingTime))
   }
 
-  addToTimeline(thing: any) {
+  addToTimeline(thing: TLE.TLEntry) {
     if (this.frozen)
       throw new Error(`Attempt to add to frozen timeline`)
     this.timeline.enqueue(thing)
   }
 
-  getRunner(statusCallback: (...args: any[]) => void) {
+  getRunner(statusCallback: StatusCallback) {
     this.frozen = true
     return new TimelineRunner(this, this.dispatcher, this.animationRunner, statusCallback)
   }

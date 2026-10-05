@@ -73,9 +73,9 @@ export class TColor extends TInterpolatable<Color> {
   }
 
   /** Called from the interpreter with native-number args (rgb: 0-255, hsl/hsv: h 0-360, s/l/v 0-100, oklch: L 0-1, C 0-0.4, h 0-360). */
-  static fromColorModel(model: string, args: any[]): TColor {
+  static fromColorModel(model: string, args: number[]): TColor {
     const baseModel = model.startsWith('oklch') ? 'oklch' : model.slice(0, 3)
-    const [a, b, c, alpha] = args as number[]
+    const [a, b, c, alpha] = args
     const hasAlpha = args.length === 4
 
     let color: Color

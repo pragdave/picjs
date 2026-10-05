@@ -2,6 +2,8 @@ import { parseToAST, ParseResult, ParseStatus  } from "./parser.js"
 import { RTE } from "./runtime_error.js"
 import { parse as pegParse } from "./peg_parser/jp.js"
 import { Dispatcher } from "./dispatcher.js"
+import { TBase } from "./types.js"
+import { SBase } from "./shapes.js"
 import { nullLogger, calculateBoundingBox, unionBounds, type BoundingBox } from "./render-utils.js"
 import { Location } from "./location.js"
 import { setTheme, getThemeName, resetTheme, applyPaletteToTheme, getDarkThemeColor } from "./defaults.js"
@@ -50,7 +52,11 @@ const errorLineField = StateField.define<DecorationSet>({
 
 // ─── Configuration ────────────────────────────────────────────────────────
 
-const examplesBase = (window as any).__PICJS_EXAMPLES_BASE ?? `/examples/`
+// A page embedding the playground can say where the examples are
+declare global {
+  interface Window { __PICJS_EXAMPLES_BASE?: string }
+}
+const examplesBase = window.__PICJS_EXAMPLES_BASE ?? `/examples/`
 
 // ─── Example definitions ──────────────────────────────────────────────────
 //
@@ -183,7 +189,7 @@ function highlightErrorLine(line: number | null) {
 }
 
 /** Recursively render any runtime value the way console.dir does. */
-function renderAny(v: any, depth = 0): HTMLElement {
+function renderAny(v: unknown, depth = 0): HTMLElement {
   if (depth > 6) return el(`span.dir-value`, `…`)
 
   if (v === null || v === undefined)
@@ -192,20 +198,20 @@ function renderAny(v: any, depth = 0): HTMLElement {
   if (typeof v !== `object`)
     return el(`span.dir-value`, String(v))
 
-  // TBase with user-defined attrs
-  let entries: [string, any][] | null = null
+  // A picjs value, with its user-defined attributes
+  let entries: [string, unknown][] | null = null
   let typeName = ``
 
-  if (`attributesAsTable` in v) {
-    const a = v.attributesAsTable() as Record<string, any>
+  if (v instanceof TBase) {
+    const a = v.attributesAsTable()
     if (Object.keys(a).length > 0) entries = Object.entries(a)
-    typeName = v.typeName ?? v.constructor?.name ?? ``
+    typeName = v.typeName
   }
 
-  // SBase shapes store display data in params (raw JS values)
-  if (!entries && `params` in v && v.params && typeof v.params === `object`) {
+  // A shape: its params, as plain values
+  if (!entries && v instanceof SBase) {
     entries = Object.entries(v.params)
-    typeName = v.constructor?.name ?? ``
+    typeName = v.constructor.name
   }
 
   // Plain JS object (e.g. position {x, y})
@@ -229,7 +235,7 @@ function renderAny(v: any, depth = 0): HTMLElement {
     return details
   }
 
-  return el(`span.dir-value`, v?.toString() ?? `null`)
+  return el(`span.dir-value`, String(v))
 }
 
 function tableOfBindings(table: Record<string, unknown>, level: number): HTMLElement | [] {
@@ -269,7 +275,7 @@ function consoleBacktrace(e: RTE) {
       const table = interpreter.bindingAsTable()
       console.log(`[table ready, ${Object.keys(table).length} entries]`)
       console.table(
-        Object.entries<any>(table).map(([k, val]) => [ k, val.toString() ])
+        Object.entries(table).map(([k, val]) => [ k, String(val) ])
       )
     })
   } else {
@@ -278,19 +284,19 @@ function consoleBacktrace(e: RTE) {
   console.log(`[backtrace done]`)
 }
 
-export function consoleLogger(loc: Location | undefined, result: any, src?: string) {
+export function consoleLogger(loc: Location | undefined, result: string, src?: string) {
   const line = loc?.start?.line ?? `?`
   const col = loc?.start?.column ?? `?`
   if (src) {
-    console.log(`%c${line}:${col}» %c${src} = %c${result.toString()}`,
+    console.log(`%c${line}:${col}» %c${src} = %c${result}`,
                 `color: gray;`, `color: darkseagreen;`, `font-weight: bold; color: darkgreen;`)
   } else {
-    console.log(`%c${line}:${col}» %c${result.toString()}`,
+    console.log(`%c${line}:${col}» %c${result}`,
                 `color: gray;`, `color: forestgreen;`)
   }
 }
 
-function webLogger(loc: Location | undefined, result: any, src?: string) {
+function webLogger(loc: Location | undefined, result: string, src?: string) {
   const logline = el(`p.log-line`, [
     el(`span.location-line`, loc?.start?.line?.toString() ?? ``),
     el(`span.location-col`,  loc?.start?.column?.toString() ?? ``),
@@ -300,7 +306,7 @@ function webLogger(loc: Location | undefined, result: any, src?: string) {
   logArea.appendChild(logline)
 }
 
-function logger(loc: Location | undefined, result: any, src?: string) {
+function logger(loc: Location | undefined, result: string, src?: string) {
   consoleLogger(loc, result, src)
   webLogger(loc, result, src)
 }
@@ -330,15 +336,15 @@ function statusCallback(status: string, _time: number, message?: string | null) 
 
 // ─── Result rendering ──────────────────────────────────────────────────────
 
-function renderResult(output: any) {
+function renderResult(output: unknown) {
   setChildren(resultHolder, [ renderAny(output, 0) ])
 }
 
 // ─── Run ───────────────────────────────────────────────────────────────────
 
 let runNumber  = 0
-let lastOutput: any = null
-const shapeMap   = new Map<string, any>()
+let lastOutput: unknown = null
+const shapeMap   = new Map<string, SBase>()
 
 function getEventTimes(dispatcher: Dispatcher): number[] {
   const times = new Set<number>()
