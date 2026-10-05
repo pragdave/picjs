@@ -12,35 +12,27 @@ export class Polyline extends LineLikeRenderer {
   convertToSVG(position: RenderParameters, attrs: Shape.Args) {
     this.pendingMarkers = []
     this.strokeSlot = attrs._stroke_slot
-    this.attrs = Convert.run(position, attrs, [
+    this.params = Convert.run(position, attrs, [
       Convert.rotation,
       Convert.linestyle,
     ])
-    this.attrs.d = this.buildPath()
+    this.params.d = this.buildPath()
 
-    if (!this.attrs.closed) {
-      this.attrs.fill = `none`
+    if (!this.params.closed) {
+      this.params.fill = `none`
     }
 
-    // Hide markers when line is not fully drawn
-    const dp = this.attrs.draw_progress
-    const dpValue = typeof dp === 'object' && dp !== null ? (dp.value ?? dp.toNative?.()) : dp
-    this.hideMarkers = dpValue !== undefined && dpValue < 1
-    this.applyDrawProgress(this.attrs)
-    delete this.attrs.start
-    delete this.attrs.waypoints
-    delete this.attrs.closed
-    delete this.attrs.line_path
-    delete this.attrs.line_start
-    delete this.attrs.line_end
-    return this.attrs
+    this.noteDrawProgress()
+    this.applyDrawProgress(this.params)
+    this.dropPathParams()
+    return this.params
   }
 
   protected buildPath() {
-    const radius = this.attrs.rx || 0
+    const radius = this.params.rx || 0
     if (radius > 0) return this.roundedPolyline(radius)
 
-    switch (this.attrs.line_path) {
+    switch (this.params.line_path) {
       case `smooth`:  return this.smoothPolyline()
       case `stepped`: return this.steppedPolyline()
       default:        return this.straightPolyline()
@@ -54,16 +46,16 @@ export class Polyline extends LineLikeRenderer {
   private polylineMarkers(pts: XY[], closed: boolean) {
     if (pts.length < 2) return
 
-    if (this.attrs.line_start) {
+    if (this.params.line_start) {
       const angle = Math.atan2(pts[1].y - pts[0].y, pts[1].x - pts[0].x)
-      this.pendingMarkers.push(this.markerPath(this.attrs.line_start, pts[0], -1, angle))
+      this.pendingMarkers.push(this.markerPath(this.params.line_start, pts[0], -1, angle))
     }
 
-    if (this.attrs.line_end && !closed) {
+    if (this.params.line_end && !closed) {
       const last = pts[pts.length - 1]
       const prev = pts[pts.length - 2]
       const angle = Math.atan2(last.y - prev.y, last.x - prev.x)
-      this.pendingMarkers.push(this.markerPath(this.attrs.line_end, last, +1, angle))
+      this.pendingMarkers.push(this.markerPath(this.params.line_end, last, +1, angle))
     }
   }
 
@@ -111,9 +103,9 @@ export class Polyline extends LineLikeRenderer {
   }
 
   steppedPolyline() {
-    const start = this.attrs.start
-    const waypoints: XY[] = this.attrs.waypoints || []
-    const closed = this.attrs.closed
+    const start = this.start
+    const waypoints: XY[] = this.params.waypoints || []
+    const closed = this.params.closed ?? false
 
     if (waypoints.length === 0) return `M ${start.x} ${start.y}`
 
@@ -134,9 +126,9 @@ export class Polyline extends LineLikeRenderer {
   // A Catmull-Rom spline through the waypoints, expressed as cubic beziers so
   // the curve passes through every point (unlike `radius`, which cuts corners).
   smoothPolyline() {
-    const start = this.attrs.start
-    const waypoints: XY[] = this.attrs.waypoints || []
-    const closed = this.attrs.closed
+    const start = this.start
+    const waypoints: XY[] = this.params.waypoints || []
+    const closed = this.params.closed ?? false
 
     if (waypoints.length === 0) return `M ${start.x} ${start.y}`
 
@@ -172,24 +164,24 @@ export class Polyline extends LineLikeRenderer {
   }
 
   straightPolyline() {
-    const start = this.attrs.start
-    const waypoints: XY[] = this.attrs.waypoints || []
-    const closed = this.attrs.closed
+    const start = this.start
+    const waypoints: XY[] = this.params.waypoints || []
+    const closed = this.params.closed ?? false
 
     if (waypoints.length === 0) return `M ${start.x} ${start.y}`
 
     // Handle start marker
-    if (this.attrs.line_start) {
+    if (this.params.line_start) {
       const angle = Math.atan2(waypoints[0].y - start.y, waypoints[0].x - start.x)
-      this.pendingMarkers.push(this.markerPath(this.attrs.line_start, start, -1, angle))
+      this.pendingMarkers.push(this.markerPath(this.params.line_start, start, -1, angle))
     }
 
     // Handle end marker (only for open polylines)
-    if (this.attrs.line_end && !closed) {
+    if (this.params.line_end && !closed) {
       const last = waypoints[waypoints.length - 1]
       const prev = waypoints.length > 1 ? waypoints[waypoints.length - 2] : start
       const angle = Math.atan2(last.y - prev.y, last.x - prev.x)
-      this.pendingMarkers.push(this.markerPath(this.attrs.line_end, last, +1, angle))
+      this.pendingMarkers.push(this.markerPath(this.params.line_end, last, +1, angle))
     }
 
     let d = `M ${start.x} ${start.y}`
@@ -202,9 +194,9 @@ export class Polyline extends LineLikeRenderer {
   }
 
   roundedPolyline(r: number) {
-    const start = this.attrs.start
-    const waypoints: XY[] = this.attrs.waypoints || []
-    const closed = this.attrs.closed
+    const start = this.start
+    const waypoints: XY[] = this.params.waypoints || []
+    const closed = this.params.closed ?? false
 
     if (waypoints.length === 0) return `M ${start.x} ${start.y}`
 
@@ -212,15 +204,15 @@ export class Polyline extends LineLikeRenderer {
     if (closed) pts.push(start)
 
     // Handle markers
-    if (this.attrs.line_start && !closed) {
+    if (this.params.line_start && !closed) {
       const angle = Math.atan2(pts[1].y - pts[0].y, pts[1].x - pts[0].x)
-      this.pendingMarkers.push(this.markerPath(this.attrs.line_start, pts[0], -1, angle))
+      this.pendingMarkers.push(this.markerPath(this.params.line_start, pts[0], -1, angle))
     }
-    if (this.attrs.line_end && !closed) {
+    if (this.params.line_end && !closed) {
       const last = waypoints[waypoints.length - 1]
       const prev = waypoints.length > 1 ? waypoints[waypoints.length - 2] : start
       const angle = Math.atan2(last.y - prev.y, last.x - prev.x)
-      this.pendingMarkers.push(this.markerPath(this.attrs.line_end, last, +1, angle))
+      this.pendingMarkers.push(this.markerPath(this.params.line_end, last, +1, angle))
     }
 
     let d: string
@@ -291,19 +283,6 @@ export class Polyline extends LineLikeRenderer {
     return {
       x: vertex.x + (dx / len) * radius,
       y: vertex.y + (dy / len) * radius,
-    }
-  }
-
-  // Point that is `radius` away from `vertex` toward `other`
-  private cornerOffset(other: XY, vertex: XY, radius: number): XY {
-    const dx = other.x - vertex.x
-    const dy = other.y - vertex.y
-    const len = Math.hypot(dx, dy)
-    if (len < 0.01) return vertex
-    const clampedR = Math.min(radius, len / 2)
-    return {
-      x: vertex.x + (dx / len) * clampedR,
-      y: vertex.y + (dy / len) * clampedR,
     }
   }
 

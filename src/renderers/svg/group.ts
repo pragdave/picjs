@@ -1,6 +1,6 @@
 import { SvgNode, svgNode } from "../../svg-node.js"
 import { RenderParameters } from "../../types.js"
-import { SvgBase } from "./_base.js"
+import { SvgBase, toSvgAttrNames } from "./_base.js"
 import * as Shape from "../../shapes.js"
 
 // Group renderer creates a <g> element with a transform.
@@ -46,9 +46,9 @@ export class Group extends SvgBase {
 
   rerender(_position: RenderParameters, attrs: Shape.Args) {
     const id = this.node?.attrs["data-jp-id"]
-    this.attrs = this.convertToSVG(_position, attrs)
+    this.svgAttrs = toSvgAttrNames(this.convertToSVG(_position, attrs))
     const existingChildren = this.node ? this.node.children : []
-    this.node = svgNode("g", this.attrs as Record<string, string | number>, existingChildren)
+    this.node = svgNode("g", this.svgAttrs, existingChildren)
     if (id !== undefined) this.node.attrs["data-jp-id"] = id
     return this
   }

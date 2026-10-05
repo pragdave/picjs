@@ -48,7 +48,8 @@ export class TFont extends TBase<FontAttributes> {
   get weight()  { return this.value[`font_weight`] }
 
 
-  injectIntoAttrs(attrs: FontAttributes) {
+  // write this font into a renderer's attributes, as font_style and so on
+  injectIntoAttrs(attrs: Record<string, unknown>) {
     if (this.style   !== `normal`) attrs[`font_style`]   = this.style
     if (this.variant !== `normal`) attrs[`font_variant`] = this.variant
     if (this.stretch !== `normal`) attrs[`font_stretch`] = this.stretch

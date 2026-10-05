@@ -27,10 +27,12 @@ export type { ProcessedWithConstraint } from "./shapes/_base.js"
 export { CardinalAttributes } from "./shapes/_base.js"
 export type { WithConstraint } from "./shapes/_base.js"
 
-export type { ShapeParams } from "./shapes/_base.js"
+import type { ShapeParams } from "./shapes/_base.js"
+export type { ShapeParams }
 
-// The attributes an SVG renderer works with, converting and adding to them
-export type Args = Record<string, any>
+// The attributes an SVG renderer works with: a shape's parameters, which it
+// converts and adds to on the way to the SVG attributes it renders
+export type Args = ShapeParams
 
 export type ShapeFunction = Record<string, SBase>
 export type ShapeModule = {

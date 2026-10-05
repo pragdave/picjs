@@ -1,9 +1,13 @@
 import { CardinalFactorsFromNW } from "../../position.js"
 import * as Shape from "../../shapes.js"
 import { RenderParameters } from "../../types.js"
+import { TFont } from "../../types/tfont.js"
 
 type Converter = (position: RenderParameters, attrs: Shape.Args) => void
 
+
+// Parameters that shape the drawing (or its timing) but aren't SVG attributes
+const NOT_SVG = [ `reveal_time`, `hide_time`, `fit` ]
 
 export function run(position: RenderParameters, incomingAttrs: Shape.Args, converters: Converter[]) {
   const result = { ...incomingAttrs }
@@ -12,8 +16,8 @@ export function run(position: RenderParameters, incomingAttrs: Shape.Args, conve
   }
   if (result.opacity !== undefined)
     result.opacity = Number(result.opacity)
-  delete result.reveal_time
-  delete result.hide_time
+  for (const name of NOT_SVG)
+    delete result[name]
   return result
 }
 
@@ -94,14 +98,14 @@ export function fontSize(_position: RenderParameters, attrs: Shape.Args) {
 
 export function font(_position: RenderParameters, attrs: Shape.Args) {
   const fontSpec = attrs.font
-  if (fontSpec)
+  if (fontSpec instanceof TFont)
     fontSpec.injectIntoAttrs(attrs)
 }
 
 //------------------------------------------------------------ linestyle
 
 export function linestyle(_position: RenderParameters, attrs: Shape.Args) {
-  const dashSpec = dashPattern(attrs.linestyle, attrs[`stroke_width`] || 1)
+  const dashSpec = dashPattern(attrs.linestyle, attrs.stroke_width || 1)
 
   if (dashSpec) {
     attrs[`stroke_dasharray`] = dashSpec
@@ -113,7 +117,7 @@ export function linestyle(_position: RenderParameters, attrs: Shape.Args) {
 }
 
 // The dash pattern for a line style, in proportion to the line's thickness
-function dashPattern(linestyle: string, thickness: number): number[] | undefined {
+function dashPattern(linestyle: string | undefined, thickness: number): number[] | undefined {
   switch (linestyle) {
     case `dotted`: {
       const dot = 0.75 * thickness

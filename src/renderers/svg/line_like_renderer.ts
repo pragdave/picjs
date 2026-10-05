@@ -2,7 +2,7 @@ import { LineDirection, SvgBase, arrowDimensions, addUsedSlot, toSvgAttrNames } 
 import { RenderParameters } from "../../types.js"
 import * as Shape from "../../shapes.js"
 import { XY } from "../../position.js"
-import { SvgNode, svgNode } from "../../svg-node.js"
+import { SvgAttrs, SvgNode, svgNode } from "../../svg-node.js"
 
 // Shared scaffolding for the two line-like renderers.
 //
@@ -15,8 +15,13 @@ import { SvgNode, svgNode } from "../../svg-node.js"
 // Subclasses supply buildPath(); markerPath() shortens the endpoint it is given
 // in place, so the path builder must call it before reading the coordinates.
 
+const PATH_PARAMS = [ `start`, `end`, `waypoints`, `closed`, `line_path`, `line_start`, `line_end`,
+                      `length`, `turn`, `x`, `y`, `rx`, `ry` ]
+
 export abstract class LineLikeRenderer extends SvgBase {
 
+  // the shape's parameters, as convertToSVG converts them
+  protected params: Shape.Args = {}
   protected pendingMarkers!: string[]
   protected hideMarkers!: boolean
   protected strokeSlot?: string
@@ -29,19 +34,36 @@ export abstract class LineLikeRenderer extends SvgBase {
   /** The `d` attribute for this shape, queueing any end markers as it goes. */
   protected abstract buildPath(): string
 
+  // What a line always has
+  protected get start(): XY  { return required(this.params.start, `start`) }
+  protected get end(): XY    { return required(this.params.end, `end`) }
+  protected get strokeWidth(): number { return required(this.params.stroke_width, `stroke_width`) }
+
+  // Once the path is built: what it was built from, and the shape's anchor and
+  // corner radius, which mean nothing on a <path>
+  protected dropPathParams() {
+    for (const name of PATH_PARAMS) delete this.params[name]
+  }
+
+  // Hide the markers while the line is being drawn
+  protected noteDrawProgress() {
+    const progress = this.params.draw_progress
+    this.hideMarkers = progress !== undefined && progress < 1
+  }
+
   private buildGroup() {
     const id = this.node?.attrs["data-jp-id"]
-    const strokeColor = this.attrs.stroke || 'currentColor'
-    const groupAttrs: Record<string, string | number> = {}
-    if (this.attrs.transform) {
-      groupAttrs.transform = this.attrs.transform
-      delete this.attrs.transform
+    const strokeColor = String(this.svgAttrs.stroke || 'currentColor')
+    const groupAttrs: SvgAttrs = {}
+    if (this.svgAttrs.transform) {
+      groupAttrs.transform = this.svgAttrs.transform
+      delete this.svgAttrs.transform
     }
-    if (this.attrs.opacity !== undefined) {
-      groupAttrs.opacity = this.attrs.opacity
-      delete this.attrs.opacity
+    if (this.svgAttrs.opacity !== undefined) {
+      groupAttrs.opacity = this.svgAttrs.opacity
+      delete this.svgAttrs.opacity
     }
-    const lineNode = svgNode('path', this.attrs as Record<string, string | number>)
+    const lineNode = svgNode('path', this.svgAttrs)
     const markerNodes = this.buildMarkers(strokeColor)
     this.node = svgNode('g', groupAttrs, [lineNode, ...markerNodes])
     if (id !== undefined) this.node.attrs["data-jp-id"] = id
@@ -63,7 +85,7 @@ export abstract class LineLikeRenderer extends SvgBase {
 
   rerender(position: RenderParameters, attrs: Shape.Args) {
     this.pendingMarkers = []
-    this.attrs = toSvgAttrNames(this.convertToSVG(position, attrs))
+    this.svgAttrs = toSvgAttrNames(this.convertToSVG(position, attrs))
     this.buildGroup()
     return this
   }
@@ -90,7 +112,7 @@ export abstract class LineLikeRenderer extends SvgBase {
   }
 
   arrowMarkerPath(pos: XY, dir: LineDirection, angle: number) {
-    const stroke_width = this.attrs[`stroke_width`]
+    const stroke_width = this.strokeWidth
     const { length: w, halfWidth: w_2 } = arrowDimensions(stroke_width)
 
     const basex = pos.x - dir * w * Math.cos(angle)
@@ -112,7 +134,7 @@ export abstract class LineLikeRenderer extends SvgBase {
   }
 
   circleMarkerPath(pos: XY, dir: LineDirection, angle: number) {
-    const { length: w } = arrowDimensions(this.attrs[`stroke_width`])
+    const { length: w } = arrowDimensions(this.strokeWidth)
     const radius = w / 2
 
     const basex = pos.x - dir * w * Math.cos(angle)
@@ -129,7 +151,7 @@ export abstract class LineLikeRenderer extends SvgBase {
   }
 
   barMarkerPath(pos: XY, dir: LineDirection, angle: number) {
-    const stroke_width = this.attrs[`stroke_width`]
+    const stroke_width = this.strokeWidth
     const { length: w, halfWidth: w_2 } = arrowDimensions(stroke_width)
 
     const basex = pos.x - dir * w * Math.cos(angle)
@@ -146,4 +168,10 @@ export abstract class LineLikeRenderer extends SvgBase {
 
     return `M ${base1x} ${base1y} L ${base2x} ${base2y}`
   }
+}
+
+function required<T>(value: T | undefined, name: string): T {
+  if (value === undefined)
+    throw new Error(`internal error: a line has no ${name}`)
+  return value
 }

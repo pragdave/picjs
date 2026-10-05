@@ -1,14 +1,17 @@
 // src/svg-node.ts
 
+// An element's attributes, as they are written out
+export type SvgAttrs = Record<string, string | number>
+
 export interface SvgNode {
   tag: string
-  attrs: Record<string, string | number>
+  attrs: SvgAttrs
   children: (SvgNode | string)[]
 }
 
 export function svgNode(
   tag: string,
-  attrs: Record<string, string | number> = {},
+  attrs: SvgAttrs = {},
   children?: (SvgNode | string)[]
 ): SvgNode {
   return { tag, attrs, children: children || [] }
@@ -40,7 +43,7 @@ export function serialize(node: SvgNode): string {
   return `${prefix}>${inner}</${tag}>`
 }
 
-function serializeAttrs(attrs: Record<string, string | number>, tag?: string): string {
+function serializeAttrs(attrs: SvgAttrs, tag?: string): string {
   const parts: string[] = []
   for (const [key, value] of Object.entries(attrs)) {
     if (value === undefined || value === null) continue

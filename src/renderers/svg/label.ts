@@ -3,7 +3,7 @@ import * as Convert from "./attribute_converters.js"
 import * as Shape from "../../shapes.js"
 
 
-import { SvgNode, svgNode, sanitizeUrl } from "../../svg-node.js"
+import { SvgAttrs, SvgNode, svgNode, sanitizeUrl } from "../../svg-node.js"
 import { RenderParameters } from "../../types.js"
 import { StyledRun, TextLayout, layoutText } from "../../text-layout.js"
 
@@ -12,7 +12,7 @@ import { StyledRun, TextLayout, layoutText } from "../../text-layout.js"
 export class Label extends SvgBase {
 
   private previousText?: string
-  private previousX?: number
+  private previousX?: string | number
   private maxwidth?: number
   private lineHeight?: number
   private align: string = `c`
@@ -21,37 +21,41 @@ export class Label extends SvgBase {
   constructor(position: RenderParameters, attrs: Shape.Args) {
     super(position, attrs)
     // arrange for (x,y) to be top-left of text box
-    this.attrs[`dominant-baseline`] = `text-before-edge`
+    this.svgAttrs[`dominant-baseline`] = `text-before-edge`
     this.maxwidth = attrs.maxwidth ? Number(attrs.maxwidth) : undefined
     this.lineHeight = attrs.line_height ? Number(attrs.line_height) : undefined
     this.align = attrs.align || `c`
     this.parentWidth = attrs._parentWidth ? Number(attrs._parentWidth) : undefined
 
     this.build(`text`)
-    this.setText(attrs.text)   // use original attrs — convertToSVG strips `text` from this.attrs
+    this.setText(attrs.text ?? ``)   // use original attrs — convertToSVG strips `text` from svgAttrs
   }
 
   rerender(position: RenderParameters, attrs: Shape.Args) {
     super.rerender(position, attrs)
-    this.attrs[`dominant-baseline`] = `text-before-edge`
+    this.svgAttrs[`dominant-baseline`] = `text-before-edge`
     this.node.attrs[`dominant-baseline`] = `text-before-edge`
     this.maxwidth = attrs.maxwidth ? Number(attrs.maxwidth) : undefined
     this.lineHeight = attrs.line_height ? Number(attrs.line_height) : undefined
     this.align = attrs.align || `c`
     this.parentWidth = attrs._parentWidth ? Number(attrs._parentWidth) : undefined
     this.previousText = undefined
-    this.setText(attrs.text)
+    this.setText(attrs.text ?? ``)
     return this
   }
 
+  private get fontSize() {
+    return Number(this.svgAttrs[`font-size`]) || 0.14
+  }
+
   setText(text: string) {
-    const currentX = this.attrs.x
+    const currentX = this.svgAttrs.x
     if (text === this.previousText && currentX === this.previousX)
       return
 
     // Same layout the size estimate used, so the text fits the space reserved.
     const layout = layoutText(text, {
-      fontSize: parseFloat(this.attrs[`font-size`]) || 0.14,
+      fontSize: this.fontSize,
       lineHeight: this.lineHeight,
       hasParent: !!this.parentWidth,
       maxwidth: this.maxwidth,
@@ -72,7 +76,7 @@ export class Label extends SvgBase {
   // Emit one tspan per laid-out line, using the offsets the shared layout
   // computed. Alignment decides the anchor; the layout decides the breaks.
   private renderLines(layout: TextLayout) {
-    const fontSize = parseFloat(this.attrs[`font-size`]) || 0.14
+    const fontSize = this.fontSize
 
     // The inset keeps aligned text off the edge of the shape holding it. A
     // standalone label has no such shape — its container is its own box, which
@@ -90,7 +94,7 @@ export class Label extends SvgBase {
                                    :                      `middle`
 
     this.node.children = layout.lines.map((line, i) => {
-      const attrs: Record<string, any> = { x: anchorX }
+      const attrs: SvgAttrs = { x: anchorX }
       if (i > 0) attrs.dy = line.dy
       return svgNode('tspan', attrs, this.runsToTSpans(line.runs))
     })

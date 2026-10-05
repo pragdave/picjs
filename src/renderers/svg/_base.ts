@@ -1,4 +1,4 @@
-import { SvgNode, svgNode } from "../../svg-node.js"
+import { SvgAttrs, SvgNode, svgNode } from "../../svg-node.js"
 import * as Shape from "../../shapes.js"
 import { RenderParameters     } from "../../types.js"
 
@@ -9,29 +9,32 @@ export const MIN_STEP_OFFSET = 0.05
 
 export type LineDirection = -1 | 1
 
+// A renderer turns a shape's parameters (Shape.Args) into an SVG element.
+// convertToSVG converts the parameters to SVG's; toSvgAttrNames then makes them
+// the element's attributes.
 export class SvgBase {
 
   position: RenderParameters
-  attrs: Shape.Args
+  svgAttrs: SvgAttrs
   node!: SvgNode
 
   constructor(position: RenderParameters, attrs: Shape.Args) {
     this.position = position
-    this.attrs = toSvgAttrNames(this.convertToSVG(position, attrs))
+    this.svgAttrs = toSvgAttrNames(this.convertToSVG(position, attrs))
   }
 
 
   rerender(position: RenderParameters, attrs: Shape.Args) {
     const id = this.node?.attrs["data-jp-id"]
     this.position = position
-    this.attrs = toSvgAttrNames(this.convertToSVG(position, attrs))
-    this.node = svgNode(this.node.tag, this.attrs as Record<string, string | number>)
+    this.svgAttrs = toSvgAttrNames(this.convertToSVG(position, attrs))
+    this.node = svgNode(this.node.tag, this.svgAttrs)
     if (id !== undefined) this.node.attrs["data-jp-id"] = id
     return this
   }
 
   build(tag: string) {
-    this.node = svgNode(tag, this.attrs as Record<string, string | number>)
+    this.node = svgNode(tag, this.svgAttrs)
   }
 
   convertToSVG(_position: RenderParameters, _attrs: Shape.Args): Shape.Args {
@@ -44,7 +47,7 @@ export class SvgBase {
     const drawProgress = attrs.draw_progress
     delete attrs.draw_progress
 
-    if (drawProgress !== undefined && drawProgress < 1) {
+    if (typeof drawProgress === `number` && drawProgress < 1) {
       attrs.pathLength = 1
       if (drawProgress <= 0) {
         // Zero-length dash + full gap: nothing visible, no browser rounding artifacts
@@ -67,24 +70,25 @@ export function addUsedSlot(attr: string, slot: string) { _usedSlots.add(`${attr
 
 const SLOT_COLOR_ATTRS = new Set(['fill', 'stroke'])
 
-// Convert internal underscore attribute names to SVG hyphenated names,
-// and replace slotted colors with CSS classes
-export function toSvgAttrNames(attrs: Shape.Args): Shape.Args {
-  const result: Shape.Args = {}
+// The element's attributes: underscores in names become hyphens, slotted
+// colors become CSS classes, and internal (_) entries are dropped
+export function toSvgAttrNames(attrs: Shape.Args): SvgAttrs {
+  const result: SvgAttrs = {}
   const classes: string[] = []
 
   for (const [k, v] of Object.entries(attrs)) {
-    if (k.startsWith('_') && k.endsWith('_slot') && v) {
+    if (k.startsWith('_') && k.endsWith('_slot') && typeof v === `string`) {
       const attrName = k.slice(1, -5) // _fill_slot → fill
       if (SLOT_COLOR_ATTRS.has(attrName)) {
-        const cssSlot = (v as string).replace(':', '-')
+        const cssSlot = v.replace(':', '-')
         classes.push(`pj-${attrName}-${cssSlot}`)
         _usedSlots.add(`${attrName}:${v}`)
         continue
       }
     }
     if (k.startsWith('_')) continue // strip remaining internal fields
-    result[k.replace(/_/g, '-')] = v
+    const value = svgValue(k, v)
+    if (value !== undefined) result[k.replace(/_/g, '-')] = value
   }
 
   // If we have slot classes, remove the inline color and add the class
@@ -95,6 +99,16 @@ export function toSvgAttrNames(attrs: Shape.Args): Shape.Args {
   }
 
   return result
+}
+
+// An attribute's value as SVG writes it. A list is written as SVG lists are
+// (stroke-dasharray); anything else that isn't a string or number means a
+// renderer passed on a parameter that isn't an SVG attribute.
+function svgValue(name: string, value: unknown): string | number | undefined {
+  if (value === undefined || value === null) return undefined
+  if (typeof value === `string` || typeof value === `number`) return value
+  if (Array.isArray(value) && value.every(v => typeof v === `number`)) return value.join(`,`)
+  throw new Error(`internal error: the SVG attribute "${name}" can't be ${JSON.stringify(value)}`)
 }
 
 export function arrowDimensions(strokeWidth: number) {

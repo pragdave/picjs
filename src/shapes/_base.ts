@@ -29,6 +29,9 @@ export interface ShapeParams {
   stroke_width?: number
   linestyle?: string
   line_path?: string              // straight, smooth or stepped
+  line_start?: string             // the marker at each end: <, >, | or o
+  line_end?: string
+  turn?: string | number          // an arc's: cw, ccw, or an angle
   length?: number
   draw_progress?: number
   reveal_time?: number
@@ -40,6 +43,7 @@ export interface ShapeParams {
   font_family?: string
   line_height?: number
   maxwidth?: number
+  align?: string                  // a label's: c, w or e
 
   start?: XY
   end?: XY

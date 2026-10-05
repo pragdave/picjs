@@ -16,31 +16,16 @@ export class Arc extends LineLikeRenderer {
   convertToSVG(position: RenderParameters, attrs: Shape.Args) {
     this.pendingMarkers = []
     this.strokeSlot = attrs._stroke_slot
-    this.normalizeAttrs()
-    this.attrs = Convert.run(position, attrs, [
+    this.params = Convert.run(position, attrs, [
       Convert.rotation,
-      Convert.anchorToSvgNW,
       Convert.linestyle,
     ])
-    this.attrs.d = this.buildPath()
-    this.attrs.fill = `none`
-    // Hide markers when line is not fully drawn
-    const dp = this.attrs.draw_progress
-    const dpValue = typeof dp === 'object' && dp !== null ? (dp.value ?? dp.toNative?.()) : dp
-    this.hideMarkers = dpValue !== undefined && dpValue < 1
-    this.applyDrawProgress(this.attrs)
-    delete this.attrs.start
-    delete this.attrs.end
-    delete this.attrs.line_path
-    delete this.attrs.line_start
-    delete this.attrs.line_end
-    // arc-only, consumed by the path builder above; neither means anything in SVG
-    delete this.attrs.turn
-    delete this.attrs.rotation
-    return this.attrs
-  }
-
-  normalizeAttrs() {
+    this.params.d = this.buildPath()
+    this.params.fill = `none`
+    this.noteDrawProgress()
+    this.applyDrawProgress(this.params)
+    this.dropPathParams()
+    return this.params
   }
 
   private arcGeometry(start: XY, end: XY) {
@@ -49,8 +34,7 @@ export class Arc extends LineLikeRenderer {
     const chord = Math.hypot(chordX, chordY)
     if (chord < 1e-6) return null
 
-    const turnValue = typeof this.attrs.turn === `string` ? this.attrs.turn : this.attrs.turn?.value
-    const isCW = turnValue === `cw`
+    const isCW = this.params.turn === `cw`
 
     const r = chord / two_cos_45
     const ux = chordX / chord
@@ -75,8 +59,8 @@ export class Arc extends LineLikeRenderer {
   }
 
   protected buildPath() {
-    const start = this.attrs.start
-    const end = this.attrs.end
+    const start = this.start
+    const end = this.end
 
     const chordX = end.x - start.x
     const chordY = end.y - start.y
@@ -98,18 +82,18 @@ export class Arc extends LineLikeRenderer {
     const arcStart = { ...start }
     const arcEnd   = { ...end }
 
-    if (this.attrs.line_start) {
-      const { length: w } = arrowDimensions(this.attrs[`stroke_width`])
+    if (this.params.line_start) {
+      const { length: w } = arrowDimensions(this.strokeWidth)
       const baseAngle = startAngle + (isCW ? 1 : -1) * (w / r)
       const baseTangent = baseAngle + tangentOffset
-      this.pendingMarkers.push(this.markerPath(this.attrs.line_start, arcStart, -1, baseTangent))
+      this.pendingMarkers.push(this.markerPath(this.params.line_start, arcStart, -1, baseTangent))
     }
 
-    if (this.attrs.line_end) {
-      const { length: w } = arrowDimensions(this.attrs[`stroke_width`])
+    if (this.params.line_end) {
+      const { length: w } = arrowDimensions(this.strokeWidth)
       const baseAngle = endAngle - (isCW ? 1 : -1) * (w / r)
       const baseTangent = baseAngle + tangentOffset
-      this.pendingMarkers.push(this.markerPath(this.attrs.line_end, arcEnd, +1, baseTangent))
+      this.pendingMarkers.push(this.markerPath(this.params.line_end, arcEnd, +1, baseTangent))
     }
 
     return ` M ${arcStart.x} ${arcStart.y}` +

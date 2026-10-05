@@ -15,6 +15,8 @@ export class Ellipse extends SvgBase {
       (position, attrs) => {
         attrs.cx = position.x
         attrs.cy = position.y
+        delete attrs.x      // the anchor; cx and cy place it
+        delete attrs.y
       },
       Convert.rotation,
       Convert.linestyle,

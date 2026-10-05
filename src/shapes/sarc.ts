@@ -12,12 +12,10 @@ export class SArc extends LineLike {
   }
 
 
-  // turn can be a plain string (from defaults) or AST node { type: "String", value: "cw" }
+  // cw or ccw; an angle (turn 45) is accepted but not yet drawn
   get turn(): string | undefined {
     const t = this.params.turn
-    if (typeof t === `string`) return t
-    if (t && typeof t === `object` && `value` in t && typeof t.value === `string`) return t.value
-    return undefined
+    return typeof t === `string` ? t : undefined
   }
   get width()          { return Math.abs(this.start.x - this.end.x) }
   get height()         { return Math.abs(this.start.y - this.end.y) }
