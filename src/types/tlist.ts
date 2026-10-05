@@ -10,6 +10,7 @@ import * as Iterable from "./iterable.js"
 // native functions
 
 export class TList extends TBase<TA[]> {
+  static override readonly displayName = `List`
 
   constructor(list: TA[]) {
     super(list, AnimationStyle.none)

@@ -39,6 +39,7 @@ Easing.quadInOut  = Easing.quad  = combine(Easing.quadIn, Easing.quadOut)
 
 
 export class TRange extends TBase<null> {
+  static override readonly displayName = `Range`
 
   easingFunction = Easing.linear
 

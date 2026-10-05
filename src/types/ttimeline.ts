@@ -4,6 +4,7 @@ import { TNumber } from "./tnumber.js"
 import { Timeline } from "../timeline.js"
 
 export class TTimeline extends TBase<Timeline> {
+  static override readonly displayName = `Timeline`
 
   // Coerce to current recording time for arithmetic
   private asNumber() { return new TNumber(this.value.now()) }

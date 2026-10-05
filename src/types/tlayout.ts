@@ -57,6 +57,7 @@ interface LayoutPlan {
 }
 
 export class TLayout extends TBase<TFunction> {
+  static override readonly displayName = `Layout`
 
   // The shapes placed the last time the layout ran
   private placed = new Map<SBase, Placed>()
@@ -270,6 +271,7 @@ export class TLayout extends TBase<TFunction> {
 // `a + b`: step several layouts together. Each starts at the same @, with its
 // own settings and history, and @ then advances to whichever finishes last.
 export class TLayoutGroup extends TBase<TLayout[]> {
+  static override readonly displayName = `Layout group`
 
   constructor(layouts: TLayout[]) {
     super([...new Set(layouts)], AnimationStyle.none)

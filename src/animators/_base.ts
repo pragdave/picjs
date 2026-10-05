@@ -22,6 +22,10 @@ interface Timing {
 
 export abstract class AnimatorBase {
 
+  // What this kind of animator is called when shown: not the class's name,
+  // which minifying changes
+  static readonly displayName: string = `AnimatorBase`
+
   protected params: Timing
   protected range?: TRange
 
@@ -87,6 +91,7 @@ export abstract class AnimatorBase {
 }
 
 export class MoveToAnimator extends AnimatorBase {
+  static override readonly displayName = `MoveToAnimator`
 
   protected shape
   protected cardinal
@@ -133,6 +138,7 @@ export class MoveToAnimator extends AnimatorBase {
 }
 
 export class MoveByAnimator extends AnimatorBase {
+  static override readonly displayName = `MoveByAnimator`
 
   protected shape
   protected dx: number
@@ -174,6 +180,7 @@ export class MoveByAnimator extends AnimatorBase {
 }
 
 export class RotateAnimator extends AnimatorBase {
+  static override readonly displayName = `RotateAnimator`
   protected shape
   protected angle
   protected about
@@ -235,6 +242,7 @@ export function createAttributeAnimator<T>(
 }
 
 class SetAttrAnimator extends AnimatorBase {
+  static override readonly displayName = `SetAttrAnimator`
 
   constructor(
     public shape: Shape.SBase, 
@@ -263,6 +271,7 @@ class SetAttrAnimator extends AnimatorBase {
 }
 
 class CrossFadeAnimator extends AnimatorBase {
+  static override readonly displayName = `CrossFadeAnimator`
 
   constructor(
     public shape: Shape.SBase, 

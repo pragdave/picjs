@@ -13,6 +13,10 @@ const Incr = 1/65536   // power of two, so exact repr.
 // `thing` is what it acts on.
 export abstract class TLEntry<Thing = unknown> {
 
+  // What this kind of entry is called when shown: not the class's name, which
+  // minifying changes
+  static readonly displayName: string = `TLEntry`
+
   key: number
 
   constructor(
@@ -40,7 +44,7 @@ export abstract class TLEntry<Thing = unknown> {
     return {
       start: this.start,
       end,
-      entryType: this.constructor.name,
+      entryType: (this.constructor as typeof TLEntry).displayName,
       updates: this.thingName()
     }
   }
@@ -49,16 +53,18 @@ export abstract class TLEntry<Thing = unknown> {
   thingName(): string {
     const thing: unknown = this.thing
     if (thing instanceof SBase) return thing.shapeName
-    if (thing === null || thing === undefined) return String(thing)
-    return (thing as object).constructor.name
+    if (thing instanceof AnimatorBase) return (thing.constructor as typeof AnimatorBase).displayName
+    if (typeof thing === `string`) return `String`
+    return String(thing)
   }
- 
+
   name() {
-    return this.constructor.name
+    return (this.constructor as typeof TLEntry).displayName
   }
 }
 
 export class CreateShape extends TLEntry<SBase> {
+  static override readonly displayName = `CreateShape`
   constructor(shape: SBase, start: number) {
     super(shape, start, start)  // instantaneous — end = start
   }
@@ -74,6 +80,7 @@ export class CreateShape extends TLEntry<SBase> {
 }
 
 export class UpdateShapeNoAnimation extends TLEntry<SBase> {
+  static override readonly displayName = `UpdateShapeNoAnimation`
 
   constructor(
     shape: SBase, 
@@ -94,6 +101,7 @@ export class UpdateShapeNoAnimation extends TLEntry<SBase> {
 }
 
 export class PositionShapeNoAnimation extends TLEntry<SBase> {
+  static override readonly displayName = `PositionShapeNoAnimation`
 
   constructor(
     shape: SBase, 
@@ -118,6 +126,7 @@ export class PositionShapeNoAnimation extends TLEntry<SBase> {
 
 
 export class Pause extends TLEntry<string | null> {
+  static override readonly displayName = `Pause`
   constructor(public message: string | null, start: number) {
     super(message, start, start)  // instantaneous
   }
@@ -127,10 +136,10 @@ export class Pause extends TLEntry<string | null> {
     timeline.pauseMessage = this.message
   }
 
-  name() { return `Pause` }
 }
 
 export class Animation extends TLEntry<AnimatorBase> {
+  static override readonly displayName = `Animation`
   constructor(animation: AnimatorBase, start: number) {
     super(animation, start, start + animation.duration())   // the animator checks its duration
   }

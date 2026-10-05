@@ -5,6 +5,7 @@ import { AnimationStyle, TA, TBase } from "./_base.js"
 type NativeCallback = (interpreter: Interpreter, ...args: TA[]) => TA
 
 export class TNative extends TBase<NativeCallback> {
+  static override readonly displayName = `Builtin function`
     minParams = 0
     maxParams = 0
 

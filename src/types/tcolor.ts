@@ -36,6 +36,7 @@ function colorToString(color: Color): string {
 }
 
 export class TColor extends TInterpolatable<Color> {
+  static override readonly displayName = `Color`
 
   paletteSlot?: string
 

@@ -6,6 +6,7 @@ import type { Dispatcher } from "../dispatcher.js"
 const InstantParams: AnimationParams = { take: 0 }
 
 export class SetVariableAnimator extends AnimatorBase {
+  static override readonly displayName = `SetVariableAnimator`
   constructor(
     private binding: Binding,
     private _dispatcher: Dispatcher,

@@ -3,6 +3,7 @@ import { Binding } from "../binding.js"
 import * as AST from "../ast.js"
 
 export class TFunction extends TBase<null> {
+  static override readonly displayName = `Function`
   constructor(
     public formals: AST.Identifier[], 
     public body: AST.ExpressionOrBlock, 

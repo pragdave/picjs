@@ -117,6 +117,11 @@ export class SBase extends TBase<null> {
 
   public shapeName = (this.constructor as typeof SBase).kind
 
+  // Box, Arc
+  override get typeName() {
+    return this.shapeName.replace(/^S/, ``)
+  }
+
   public params:         ShapeParams = {}
   public anchorX:        number | null = null
   public anchorY:        number | null = null
@@ -212,9 +217,8 @@ export class SBase extends TBase<null> {
     if (isKnownAttribute(this.shapeName, attr))
       return
 
-    const name = this.shapeName.replace(/^S/, ``)
     throw new RTE(
-      `"${name}" has no attribute "${attr}". ` +
+      `"${this.typeName}" has no attribute "${attr}". ` +
       `It accepts: ${acceptedAttributesFor(this.shapeName).join(`, `)}`
     )
   }
@@ -691,7 +695,7 @@ export class SBase extends TBase<null> {
 
   toString() {
     const shapeAttrs = formatAttrs(this.params)
-    return `${this.constructor.name}\t\tattrs: ${shapeAttrs}\n`
+    return `${this.typeName}\t\tattrs: ${shapeAttrs}\n`
   }
 
   toNative() {
@@ -700,7 +704,7 @@ export class SBase extends TBase<null> {
 
   // a Box, an Arc
   override nameForErrors() {
-    const name = this.shapeName.replace(/^S/, ``)
+    const name = this.typeName
     return `${/^[AEIOU]/.test(name) ? `an` : `a`} ${name}`
   }
 

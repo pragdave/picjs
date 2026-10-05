@@ -2,6 +2,7 @@ import { RTE } from "../runtime_error.js"
 import { AnimationStyle, TBase, TA } from "./_base.js"
 
 export class TBool extends TBase<boolean> {
+  static override readonly displayName = `Boolean`
   constructor(value: boolean) {
     super(!!value, AnimationStyle.none)
   }

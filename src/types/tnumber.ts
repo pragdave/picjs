@@ -16,6 +16,7 @@ type OpFn = (a: number, b: number) => number
 type ComparisonFn = (a: number, b: number) => boolean
 
 export class TNumber extends TInterpolatable<number> {
+  static override readonly displayName = `Number`
 
   constructor(value: number) {
     super(value, AnimationStyle.continuous)

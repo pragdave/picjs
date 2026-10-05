@@ -22,8 +22,15 @@ export type BinaryOperatorMethod =
   `opGreater_than_than` | `opGreater_than_than_or_equal_to`
 
 export class TBase<ValueType, > {
+  // What this kind of value is called when shown: not the class's name, which
+  // minifying changes
+  static readonly displayName: string = `Value`
+
   attrs: Record<string, TA>
-  typeName = this.constructor.name
+
+  get typeName(): string {
+    return (this.constructor as typeof TBase).displayName
+  }
 
 
   constructor(public value: ValueType, public animationStyle: AnimationStyle = AnimationStyle.none) {
@@ -109,7 +116,7 @@ export class TBase<ValueType, > {
   }
 
   toNative(): unknown {
-    throw new Error(`type ${this.constructor.name} does not implement "toNative()"`)
+    throw new Error(`internal error: a ${this.typeName} value has no toNative()`)
   }
 
 

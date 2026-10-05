@@ -5,6 +5,7 @@ import { TList } from "../types.js"
 import { TNumber } from "./tnumber.js"
 
 export class TString extends TInterpolatable<string> {
+  static override readonly displayName = `String`
 
   constructor(value: string) {
     super(value, AnimationStyle.crossfade)

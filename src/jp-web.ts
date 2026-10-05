@@ -211,16 +211,16 @@ function renderAny(v: unknown, depth = 0): HTMLElement {
   // A shape: its params, as plain values
   if (!entries && v instanceof SBase) {
     entries = Object.entries(v.params)
-    typeName = v.constructor.name
+    typeName = v.typeName
   }
 
-  // Plain JS object (e.g. position {x, y})
+  // Its fields: a picjs value without attributes keeps its type name; any
+  // other object (a position's {x, y}, say) goes unnamed, as its class's name
+  // is changed by minifying
   if (!entries) {
     const keys = Object.keys(v)
-    if (keys.length > 0) {
+    if (keys.length > 0)
       entries = Object.entries(v)
-      typeName = v.constructor?.name !== `Object` ? (v.constructor?.name ?? ``) : ``
-    }
   }
 
   if (entries) {

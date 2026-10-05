@@ -19,6 +19,7 @@ function notSupported(op: string) {
 }
 
 export class TPosition extends TInterpolatable<XY> {
+  static override readonly displayName = `Position`
 
   constructor(pos: XY | TNumber | number, y?: TNumber | number);
   constructor(x: XY | TNumber | number, y: TNumber | number) {

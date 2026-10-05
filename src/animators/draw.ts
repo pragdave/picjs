@@ -3,6 +3,7 @@ import { TNumber, TA } from "../types.js"
 import * as Shape from "../shapes.js"
 
 export class DrawAnimator extends AnimatorBase {
+  static override readonly displayName = `DrawAnimator`
 
   private isBounce: boolean
 

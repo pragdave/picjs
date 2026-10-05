@@ -26,6 +26,7 @@ const FontDefaults: FontAttributes = {
 }
 
 export class TFont extends TBase<FontAttributes> {
+  static override readonly displayName = `Font`
   constructor(spec: OptionalFontAttributes) {
     super({ ... FontDefaults, ...spec }, AnimationStyle.none)
   }

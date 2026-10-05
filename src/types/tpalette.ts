@@ -6,6 +6,7 @@ import { Palette } from "../palette.js"
 import { applyPaletteToTheme } from "../defaults.js"
 
 export class TPalette extends TBase<null> {
+  static override readonly displayName = `Palette`
   constructor() {
     super(null)
   }
