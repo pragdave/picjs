@@ -21,6 +21,11 @@ export class TNative extends TBase<NativeCallback> {
     this.description = description
   }
 
+  // a value's built-in methods aren't part of what it holds
+  override shownInAttributeTable() {
+    return false
+  }
+
   acceptableParameters(params: TA[]) {
     const len = params.length
     if (len < this.minParams)

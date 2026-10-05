@@ -3,7 +3,7 @@ import { TNumber } from "../types.js"
 import { Cardinals, XY } from "../position.js"
 
 export class SEllipse extends SBase {
-  override shapeName = "SEllipse"
+  static override readonly kind = "SEllipse"
 
   missingDimensions() {
     return false

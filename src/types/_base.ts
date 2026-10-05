@@ -105,7 +105,7 @@ export class TBase<ValueType, > {
 
   // How this value is described in error messages
   nameForErrors(): string {
-    return String(this.toNative())
+    return this.toString()
   }
 
   toNative(): unknown {
@@ -119,19 +119,24 @@ export class TBase<ValueType, > {
 
   operatorNotSupported(op: string): never {
     throw new RTE(
-      `${this.constructor.name} (${this.toNative()}) does not implement "${op}"`
+      `${this.nameForErrors()} does not implement "${op}"`
     )
   }
 
   isSameTypeAs(other: TA) {
-    return this.constructor.name === other.constructor.name
+    return this.constructor === other.constructor
+  }
+
+  // Whether this value appears among another's attributes when they're shown
+  shownInAttributeTable() {
+    return true
   }
 
   // For showing this value's attributes (in the playground, say)
   attributesAsTable(): Record<string, unknown> {
     const result: Record<string, TA> = {}
     Object.entries(this.attrs).forEach(([k, v]) => {
-      if (!(typeof v === `object` && v.constructor.name === `TNative`))
+      if (v.shownInAttributeTable())
         result[k] = v
     })
     return result

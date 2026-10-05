@@ -1,3 +1,4 @@
+import { RTE } from "../runtime_error.js"
 import { AnimationStyle, TBase, TA } from "./_base.js"
 
 export class TBool extends TBase<boolean> {
@@ -16,8 +17,8 @@ export class TBool extends TBase<boolean> {
   checkAndApply(other: TA, op: string, opFn: (a:boolean, b:boolean) => boolean) {
     if (other instanceof TBool)
       return new TBool(opFn(this.value, other.value))
-    throw new Error(
-      `Cannot execute "${this.value} ${op} ${other.constructor.name}"`
+    throw new RTE(
+      `Cannot execute "${this.value} ${op} ${other.nameForErrors()}"`
     )
   }
 

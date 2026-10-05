@@ -20,7 +20,19 @@ describe(`error messages`, () => {
   })
 
   it(`say which operator a value doesn't support`, () => {
-    expect(() => runProgram(`v = (1, 2) ^ 2`)).toThrow(/does not implement "\^"/)
+    expect(() => runProgram(`v = (1, 2) ^ 2`)).toThrow(/^\(1, 2\) does not implement "\^"$/)
+  })
+
+  // values are named by what they are, never by the class that holds them
+  it.each([
+    [`v = true == 3`,     /^Cannot execute "true == 3"$/],
+    [`v = ~red == 3`,     /^Cannot execute "#ff0000 == 3"$/],
+    [`v = "a" < 3`,       /^Cannot compare "a" using < with 3$/],
+    [`v = 3 < "a"`,       /but this is "a"$/],
+    [`v = 3 + true`,      /^true does not implement "\+"$/],
+    [`v = 3 && true`,    /^"&&" needs boolean operands, but was given 3$/],
+  ])(`name the values an operator was given: %s`, (src, message) => {
+    expect(() => runProgram(src)).toThrow(message)
   })
 
   it.each([
@@ -42,7 +54,7 @@ describe(`string operators`, () => {
   })
 
   it.each([
-    [`"ab" * "x"`,   /"\*" needs a number after a string, but this is x/],
+    [`"ab" * "x"`,   /"\*" needs a number after a string, but this is "x"/],
     [`"ab" / 2`,     /"\/" needs a string after a string, but this is 2/],
   ])(`%s is an error that says what is needed`, (src, message) => {
     expect(() => runProgram(`v = ${src}`)).toThrow(message)
@@ -51,10 +63,10 @@ describe(`string operators`, () => {
 
 describe(`native functions given the wrong kind of argument`, () => {
   it.each([
-    [`sin("x")`,                         /sin needs a number for its angle, but was given x/],
+    [`sin("x")`,                         /sin needs a number for its angle, but was given "x"/],
     [`atan2(1, ~red)`,                   /atan2 needs a number for its dx, but was given #ff0000/],
     [`polar(~red, 1)`,                   /polar needs a number for its radius, but was given #ff0000/],
-    [`~red.darken("x")`,                 /darken needs a number for its ratio, but was given x/],
+    [`~red.darken("x")`,                 /darken needs a number for its ratio, but was given "x"/],
     [`~red.spin(~blue)`,                 /spin needs a number for its angle, but was given #0000ff/],
     [`(3).times(4)`,                     /times needs a function for its callback, but was given 4/],
     [`[1, 2].each(5)`,                   /each needs a function for its callback, but was given 5/],
@@ -67,9 +79,9 @@ describe(`native functions given the wrong kind of argument`, () => {
 
 describe(`assigning the wrong kind of value`, () => {
   it.each([
-    [`p = (1, 2)\np.x = "x"`,            /A position's x must be a number, but this is x/],
-    [`@.now = "x"`,                      /@.now must be a time in seconds, but this is x/],
-    [`b = Box\nb.x = "x"`,               /A shape's x must be a number, but this is x/],
+    [`p = (1, 2)\np.x = "x"`,            /A position's x must be a number, but this is "x"/],
+    [`@.now = "x"`,                      /@.now must be a time in seconds, but this is "x"/],
+    [`b = Box\nb.x = "x"`,               /A shape's x must be a number, but this is "x"/],
     [`v = (1, 2) + ["a", "b"]`,          /a list of two numbers/],
     [`b = Box\nb.width = ~red`,          /A shape's width must be a number, but this is #ff0000/],
     [`b = Box\nset b.x to ~red`,         /a Box's x can't be set to #ff0000/],
@@ -97,7 +109,7 @@ describe(`where shapes and lines are placed`, () => {
     [`line from 3 to (1, 1)`,                 /A line can only go from, to, or through a position or a shape, but this is 3/],
     [`line from (0, 0) to ~red`,              /but this is #ff0000/],
     [`line from (0, 0) then 3 then (1, 1)`,   /but this is 3/],
-    [`line right "x"`,                        /A line's distance must be a number, but this is x/],
+    [`line right "x"`,                        /A line's distance must be a number, but this is "x"/],
     [`Box with .nw at 3`,                     /"with ... at" needs a position or a shape, but this is 3/],
   ])(`%s is an error`, (src, message) => {
     expect(() => runProgram(src)).toThrow(message)
@@ -106,7 +118,7 @@ describe(`where shapes and lines are placed`, () => {
 
 describe(`colors and comparisons given the wrong kind of value`, () => {
   it.each([
-    [`v = rgb("x", 1, 2)`,     /rgb needs a number for its 1st value, but was given x/],
+    [`v = rgb("x", 1, 2)`,     /rgb needs a number for its 1st value, but was given "x"/],
     [`v = 3 < ~red`,           /"<" can only compare a number with a number, but this is #ff0000/],
   ])(`%s`, (src, message) => {
     expect(() => runProgram(src)).toThrow(message)

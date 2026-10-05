@@ -4,7 +4,7 @@ import { Cardinals, CardinalFactorsFromCenter, XY } from "../position.js"
 import type * as AST from "../ast.js"
 
 export class SPolyline extends LineLike {
-  override shapeName = "SPolyline"
+  static override readonly kind = "SPolyline"
 
   // The `then` clauses, as syntax trees evaluated by the geometry
   get _waypoints()  { return this.hidden._waypoints as AST.Node[] | undefined }

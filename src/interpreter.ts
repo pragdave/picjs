@@ -175,7 +175,7 @@ export class Interpreter extends Visitor{
     if (value instanceof TBool)
       return value.value
     throw new RTE(
-      `"${op}" needs boolean operands, but was given ${value.constructor.name} (${value.toNative()})`
+      `"${op}" needs boolean operands, but was given ${value.nameForErrors()}`
     )
   }
 

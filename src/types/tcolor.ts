@@ -177,7 +177,7 @@ export class TColor extends TInterpolatable<Color> {
   checkAndApplyBool(other: TA, op: string, opFn: (a: Color, b: Color) => boolean) {
     if (other instanceof TColor)
       return new TBool(opFn(this.value, other.value))
-    throw new Error(`Cannot execute color ${op} ${other.constructor.name}`)
+    throw new RTE(`Cannot execute "${this.nameForErrors()} ${op} ${other.nameForErrors()}"`)
   }
 
   /** Compare by normalised #rrggbbaa hex so format differences don't matter. */

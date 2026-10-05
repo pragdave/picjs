@@ -20,7 +20,7 @@ import type { TA } from "../types.js"
 // This leverages SVG's native transform system - no manual repositioning needed.
 
 export class SGroup extends SBase {
-  override shapeName = "SGroup"
+  static override readonly kind = "SGroup"
 
   groupChildren: SBase[] = []
   predecessorShape?: SBase

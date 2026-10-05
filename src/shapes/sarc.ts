@@ -4,7 +4,7 @@ import { Cardinals, CardinalFactorsFromCenter, UnitVector, XY } from "../positio
 const DefaultLength = 0.625
 
 export class SArc extends LineLike {
-  override shapeName = "SArc"
+  static override readonly kind = "SArc"
 
   getCardinalOffsetsFromAnchor(cardinal: Cardinals) {
     const [ fx, fy ] = CardinalFactorsFromCenter[cardinal]

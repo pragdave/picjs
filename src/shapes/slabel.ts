@@ -21,7 +21,7 @@ import type { SvgNode } from "../svg-node.js"
 
 
 export class SLabel extends SBase {
-  override shapeName = "SLabel"
+  static override readonly kind = "SLabel"
 
   override setupParams(args: ShapeArgs) {
     // Track explicit fill in hidden (survives field initialization)

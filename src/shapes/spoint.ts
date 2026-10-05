@@ -3,7 +3,7 @@ import { TNumber } from "../types.js"
 import { Cardinals, UnitVector, XY } from "../position.js"
 
 export class SPoint extends SBase {
-  override shapeName = "SPoint"
+  static override readonly kind = "SPoint"
 
   // we aren't really anchored, but we can pretend 
   //

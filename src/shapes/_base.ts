@@ -112,7 +112,10 @@ export class SBase extends TBase<null> {
 
   // These are the SVG parameters
   public id        = `s-id-${sID++}`
-  public shapeName = this.constructor.name
+  // the kind of shape, from the class: not its name, which minifying changes
+  static readonly kind: string = `SBase`
+
+  public shapeName = (this.constructor as typeof SBase).kind
 
   public params:         ShapeParams = {}
   public anchorX:        number | null = null

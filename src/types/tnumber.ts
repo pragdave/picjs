@@ -93,8 +93,8 @@ export class TNumber extends TInterpolatable<number> {
     if (transitive)
       return other[transitive](this)
 
-    throw new Error(
-      `Cannot execute "${this.value} ${op} ${other.constructor.name}"`
+    throw new RTE(
+      `Cannot execute "${this.value} ${op} ${other.nameForErrors()}"`
     )
   }
 

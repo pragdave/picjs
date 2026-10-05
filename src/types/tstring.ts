@@ -16,7 +16,7 @@ export class TString extends TInterpolatable<string> {
 
     if (`toString` in other)
       return new TString(this.value + other.toString())
-    throw new RTE(`Cannot concatenate a ${(other as TA).constructor.name} to the string "${this.value}"`)
+    throw new RTE(`Cannot concatenate ${(other as TA).nameForErrors()} to the string "${this.value}"`)
   }
 
   // "ab" * 3 is "ababab"
@@ -65,7 +65,7 @@ export class TString extends TInterpolatable<string> {
     if (other instanceof TString)
       return new TBool(opFn(this.value, other.value))
     throw new RTE(
-      `Cannot compare "${this.value} using ${op} ${other.constructor.name} (${other.value})"`
+      `Cannot compare "${this.value}" using ${op} with ${other.nameForErrors()}`
     )
   }
 
@@ -79,6 +79,10 @@ export class TString extends TInterpolatable<string> {
 
   toNative() {
     return this.value
+  }
+
+  override nameForErrors() {
+    return JSON.stringify(this.value)
   }
 }
 
