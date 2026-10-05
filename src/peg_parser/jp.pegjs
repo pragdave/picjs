@@ -1714,8 +1714,11 @@ SERadii
   / radius __ value:Expression
     { return { rx: value, ry: value } }
 
+// Width and height can't be assignments, and the "x" must be on the width's
+// line and not start a name, so `Box` followed by lines like `b = Box` and
+// `xs = 100` aren't taken as a size. "2x3" still is.
 SESize
-  = width:Expression _ [x×] _ height:Expression {
+  = width:LogicalORExpression SameLineSpace? [x×] !IdentifierStart _ height:LogicalORExpression {
       return { height, width }
     }
   / width __ width:Expression {
@@ -2151,9 +2154,15 @@ FontFamilyNames
   = FontFamilyName (_ "," _ FontFamilyName)*
     { return ast({ "font_family": text() })}
 
+// An unquoted name can be several words, so it ends at the end of the line or
+// at an attribute keyword: in `font 12pt Georgia fill ~red` the family is
+// Georgia
 FontFamilyName
   = '"' (!'"'.)+ '"'
-  / Identifier (__ Identifier)*
+  / FontFamilyWord (SameLineSpace FontFamilyWord)*
+
+FontFamilyWord
+  = !AttrName Identifier
 
 ObliqueAngle
   = [+-]?[0-9][0-9] AngleUnit

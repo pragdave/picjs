@@ -910,6 +910,11 @@ Box "Hello" font bold 16px "Helvetica"
 Label "Title" font italic small-caps 24pt/1.2 "Georgia", serif
 ```
 
+An unquoted family can be several words (`24pt Times New Roman`). It ends at
+the end of the line or at an attribute such as `fill`, so in
+`font 24pt Georgia fill ~red` the family is Georgia. Any other word after it
+is taken as part of the name, so quote the family when something else follows.
+
 **Sizes:** `xx-small`, `x-small`, `small`, `medium`, `large`, `x-large`,
 `xx-large`, `xxx-large`, `smaller`, `larger`, percentages, or numeric with
 unit (`px`, `pt`, `em`, `rem`, `cm`, `mm`, `in`, `pc`, `ex`, `ch`, `lh`,
