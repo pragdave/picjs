@@ -25,25 +25,6 @@ function nameForErrors(value: unknown) {
   return value instanceof TBase ? value.nameForErrors() : String(value)
 }
 
-// class GeometryChange {
-//   constructor(
-//     public shape: SBase, 
-//     public attribute: string, 
-//     public value: any
-//   ) {
-//   }
-// }
-
-// class StyleChange {
-//   constructor(
-//     public shape: SBase, 
-//     public attribute: string, 
-//     public value: any
-//   ) {
-//   }
-// }
-
-
 export class Geometry {
 
   lastShape: SBase
@@ -80,14 +61,6 @@ export class Geometry {
   addShape(shape: SBase) {
     this.position(shape)
   }
-
-  // updateShapeGeometry(shape: SBase, attribute: string, value: any) {
-  //   this.dispatcher.addImmediate(new GeometryChange(shape, attribute, value))
-  // }
-
-  // updateShapeStyle(shape: SBase, attribute: string, value: any) {
-  //   this.dispatcher.addImmediate(new StyleChange(shape, attribute, value))
-  // }
 
   // Given a constraint:
   //   - make sure we don't also have attr.x or cy 

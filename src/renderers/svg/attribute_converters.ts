@@ -130,7 +130,7 @@ function dashPattern(linestyle: string | undefined, thickness: number): number[]
   }
 }
 
-////------------------------------------------------------------ rotatio
+//------------------------------------------------------------ rotation
 
 export function rotation(position: RenderParameters, attrs: Shape.Args) {
   if (!attrs.rotation) {
@@ -145,37 +145,3 @@ export function rotation(position: RenderParameters, attrs: Shape.Args) {
   attrs.transform = `rotate(${attrs.rotation}, ${center.x}, ${center.y})`
   delete attrs.rotation
 }
-
-
-
-////------------------------------------------------------------ width, height
-
-//export function attr_width_height(renderer, name, value) {
-
-//  if (name === `width`) {
-//    renderer.width = value
-//    setAttr(renderer.el, { width: value })
-//    return true
-//  }
-
-//  if (name === `height`) {
-//    renderer.height = value
-//    setAttr(renderer.el, { height: value })
-//    return true
-//  }
-
-//  return false
-//}
-
-////------------------------------------------------------------ r (radius)
-
-//export function attr_circle_radius(renderer, name, value) {
-//  if (name === `r`) {
-//    renderer.width = renderer.height = value * 2
-//    setAttr(renderer.el, { [name]: value })
-//    return true
-//  }
-//  return false
-//}
-
-
