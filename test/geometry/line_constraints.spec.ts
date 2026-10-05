@@ -1,4 +1,7 @@
-import { valueOf } from "../helpers/eval.js"
+import { valueOf, newDispatcher } from "../helpers/eval.js"
+import { parseToAST, ParseStatus } from "../../src/parser.js"
+import { parse } from "../../src/peg_parser/jp.js"
+import type { LineLike } from "../../src/shapes/line_like.js"
 
 const defaultX = 0, defaultY = 0
 
@@ -53,4 +56,30 @@ describe(`6. Line joins centers if shape cardinals given`, () => {
     valueOf(`a = Box (100, 100) b = Box (100, 200) Line from a.c to b.c`)
   it(`starts at center of first box`, () => expect(l.start).toEqual(pos(100, 100)))
   it(`ends at center of second box`, () => expect(l.end).toEqual(pos(100, 200)))
+})
+
+// A line drawn first has no shape before it. Rendering re-evaluates it once
+// the shape after it is placed, and it must still start where it did, not
+// from that later shape.
+describe(`a line drawn first, followed by a shape`, () => {
+  function rendered(src: string) {
+    const parsed = parseToAST(parse, src, `Start`, false)
+    if (parsed.status !== ParseStatus.Ok) throw new Error(String(parsed.error))
+    const dispatcher = newDispatcher()
+    dispatcher.start(parsed.ast)
+    dispatcher.renderToSvgNodes()
+    return dispatcher.getCurrentBinding().get_variable_value(`l`) as unknown as LineLike
+  }
+
+  it.each([
+    [`a line, then a box`,    `l = Line\nBox`,   pos(0, 0), pos(1, 0)],
+    // the arc meets the box's top edge, on the line from its center to (0, 0)
+    [`an arc, then a box`,    `l = Arc\nBox`,    pos(0, 0), pos(0.390625, 0.625)],
+    [`a line, then a circle`, `l = Line\nCircle`, pos(0, 0), pos(1, 0)],
+  ])(`%s: the line keeps its start, and runs to the shape`, (_name, src, start, end) => {
+    const line = rendered(src)
+    expect(line.start).toEqual(start)
+    expect(line.end.x).toBeCloseTo(end.x)
+    expect(line.end.y).toBeCloseTo(end.y)
+  })
 })

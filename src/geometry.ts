@@ -371,13 +371,16 @@ export class Geometry {
     let newDirection = dir
 
     // Without a `from`, start from the predecessor if there is one (set by
-    // resolveImplicitConnectorDependencies), or else the last shape drawn
+    // resolveImplicitConnectorDependencies), or else from what was drawn last
+    // when the line was first laid out
     let start: Place
     if (line._start) {
       start = this.endpoint(line, line._start)
     }
     else {
-      const fromShape = line.predecessorShape ?? this.lastShape
+      // lastShape is only the shape before the line during the first layout:
+      // once more has been drawn it is something later
+      const fromShape = line.predecessorShape ?? (line.startedFrom ??= this.lastShape)
       if (fromShape instanceof LineLike)     // a chain of lines: start where it ends
         start = { point: { ...fromShape.end } }
       else {

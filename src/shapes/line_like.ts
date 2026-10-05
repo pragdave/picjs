@@ -16,6 +16,9 @@ export abstract class LineLike extends SBase {
   // Used by geometry.positionLine to avoid relying on stale lastShape state.
   predecessorShape?: SBase
   successorShape?:   SBase
+  // What a line with neither a `from` nor a predecessor started from when it
+  // was first laid out (the origin, say), so re-evaluating it starts there too
+  startedFrom?: SBase
   _layoutDirection?: XY
 
   // The `from` and `to` clauses, as syntax trees evaluated by the geometry.
