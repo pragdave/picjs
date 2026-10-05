@@ -34,7 +34,7 @@ export function parse(content: string) {
 
 export function createRunner(
   logger: LoggerInterface,
-  svgHolder: SVGElement,
+  svgHolder: SVGElement | null,
   runNumber: number
 ) {
     return new Dispatcher(logger, svgHolder, runNumber)

@@ -10,8 +10,7 @@ function logger(loc: any, result: any, src: any) {
 }
 
 export function newDispatcher() {
-  return new Dispatcher(logger, <SVGElement><unknown>null, 1)
-  // return new Dispatcher(consoleLogger, null, 1)
+  return new Dispatcher(logger, null, 1)
 }
 
 export function valueOf(content: string, start = `Program`) {

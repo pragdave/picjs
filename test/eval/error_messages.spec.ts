@@ -86,7 +86,7 @@ describe(`string operators`, () => {
     const logged: string[] = []
     const parsed = parseToAST(parse, `b = Box\n?? b`, `Start`, false)
     if (parsed.status !== ParseStatus.Ok) throw new Error(String(parsed.error))
-    new Dispatcher((_loc, value) => logged.push(value), null as unknown as SVGElement, 1).start(parsed.ast)
+    new Dispatcher((_loc, value) => logged.push(value), null, 1).start(parsed.ast)
     expect(logged[0]).toMatch(/^Box\t\tattrs: .*width 1/)
   })
 })

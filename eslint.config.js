@@ -30,9 +30,9 @@ export default tseslint.config(
         caughtErrorsIgnorePattern: "^_",
         destructuredArrayIgnorePattern: "^_",
       }],
-      // Much of the code is dynamically typed on purpose. Replacing `any`
-      // with real types is worth doing, but gradually: see each warning.
-      "@typescript-eslint/no-explicit-any": "warn",
+      // picjs values are TA, shape parameters ShapeParams, and anything
+      // whose type is truly open is unknown, checked where it's used
+      "@typescript-eslint/no-explicit-any": "error",
     },
   },
   {

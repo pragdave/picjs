@@ -22,7 +22,7 @@ console.log(ast.status)
 
 if (ast.status === `ok`) {
   console.log(JSON.stringify(ast.ast, null, 4))
-  const runner = createRunner(logger, null as unknown as SVGElement, 1)
+  const runner = createRunner(logger, null, 1)
   const result = runner.start(ast.ast)
   console.log(`result = `, result)
 }

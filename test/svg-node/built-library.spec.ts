@@ -21,7 +21,7 @@ function run(library: Library, src: string) {
   const parsed = library.parse(src)
   if (parsed.status !== ParseStatus.Ok) throw new Error(String(parsed.error))
   const logged: string[] = []
-  const dispatcher = library.createRunner((_loc, value) => logged.push(value), null as unknown as SVGElement, 1)
+  const dispatcher = library.createRunner((_loc, value) => logged.push(value), null, 1)
   dispatcher.start(parsed.ast)
   const timeline = (dispatcher as unknown as { timeline: { asArray(): unknown } }).timeline.asArray()
   return { timeline, logged }
