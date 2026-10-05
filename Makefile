@@ -6,7 +6,7 @@ TARGET = dist/jp.js
 TESTS  = test/
 
 .PHONY: all 
-all: $(TARGET)
+all: $(TARGET) docs/grammar.md
 
 .PHONY: play
 play:
@@ -31,4 +31,6 @@ $(PARSER).js: $(PARSER).pegjs Makefile
 $(PARSER)-test.js: $(PARSER).pegjs Makefile
 	node $(PEGJS) $(TRACE) --format es --dts --allowed-start-rules $(STARTS) -o $(PARSER)-test.js $(PARSER).pegjs
 
-
+# the annotated EBNF in the docs, generated from the grammar
+docs/grammar.md: $(PARSER).pegjs docs/tools/extract-grammar.cjs
+	node docs/tools/extract-grammar.cjs

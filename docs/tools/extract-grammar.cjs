@@ -1,742 +1,524 @@
 #!/usr/bin/env node
 
-// Phase 1: Parse jp.pegjs via Peggy's own parser and visitor,
-// extract structured syntax data into grammar-data.json.
+// Generate docs/grammar.md, an annotated EBNF of the picjs grammar, from
+// src/peg_parser/jp.pegjs. Run it (`make docs/grammar.md`) whenever the
+// grammar changes; never edit grammar.md by hand.
 //
-// Inspired by peggy-tracks (https://github.com/peggyjs/peggy-tracks)
+// The grammar is parsed with Peggy's own parser. Rules are listed top down
+// from Start: each appears once, under the shallowest rule that refers to it,
+// and the rules under one parent are in alphabetical order. A rule is
+// annotated with the comment written above it in the grammar.
+//
+// What is left out, because it isn't syntax:
+// - actions, labels and display names
+// - alternatives that only report an error (they call error() or expected(),
+//   or throw), and rules made of nothing else
+// - keyword rules (move = "move" !IdentifierPart): references to them are
+//   written as the word itself, and the words are listed in a table
 
-const peggy = require('peggy')
-const asts  = require('peggy/lib/compiler/asts')
-const { stringEscape, regexpClassEscape } = require('peggy/lib/compiler/utils')
-const fs   = require('fs')
-const path = require('path')
+const peggy = require(`peggy`)
+const fs    = require(`fs`)
+const path  = require(`path`)
 
-const ROOT = path.resolve(__dirname, '../..')
-const GRAMMAR_FILE = path.join(ROOT, 'src/peg_parser/jp.pegjs')
-const OUTPUT_FILE  = path.join(ROOT, 'docs/grammar-data.json')
+const ROOT         = path.resolve(__dirname, `../..`)
+const GRAMMAR_FILE = path.join(ROOT, `src/peg_parser/jp.pegjs`)
+const OUTPUT_FILE  = path.join(ROOT, `docs/grammar.md`)
 
-// ──────────────────────────────────────────────── Parse the grammar
+const WIDTH  = 80     // of the EBNF lines
+const INDENT = 16     // where a rule's definition starts
 
-const grammarSource = fs.readFileSync(GRAMMAR_FILE, 'utf8')
-const grammar = peggy.parser.parse(grammarSource)
-const rulesByName = Object.fromEntries(grammar.rules.map(r => [r.name, r]))
+const source  = fs.readFileSync(GRAMMAR_FILE, `utf8`)
+const lines   = source.split(`\n`)
+const grammar = peggy.parser.parse(source)
+const rules   = new Map(grammar.rules.map(rule => [rule.name, rule]))
 
-// ──────────────────────────────────────────────── Rule classification
-
-// Rules that just match a keyword literal (e.g., move = "move" !IdentifierPart)
-const KEYWORD_RULES = new Set()
-
-for (const rule of grammar.rules) {
-  if (isKeywordRule(rule)) KEYWORD_RULES.add(rule.name)
-}
-
-function isKeywordRule(rule) {
-  const expr = unwrap(rule.expression)
-  if (expr.type !== 'sequence') return false
-  const first = expr.elements[0]
-  // literal !IdentifierPart  or  (literal / literal) !IdentifierPart
-  if (first.type === 'literal') return true
-  if (first.type === 'group') {
-    const inner = first.expression
-    if (inner.type === 'literal') return true
-    if (inner.type === 'choice' && inner.alternatives.every(a => a.type === 'literal'))
-      return true
-  }
-  if (first.type === 'choice' && first.alternatives.every(a => a.type === 'literal'))
-    return true
-  return false
-}
+// ──────────────────────────────────────────────── Classifying rules
 
 function unwrap(node) {
-  if (node.type === 'action') return unwrap(node.expression)
-  if (node.type === 'named') return unwrap(node.expression)
+  while ([`action`, `named`, `labeled`, `text`, `group`].includes(node.type))
+    node = node.expression
   return node
 }
 
-// Get the primary keyword text for a keyword rule
-function keywordText(ruleName) {
-  const rule = rulesByName[ruleName]
-  if (!rule) return ruleName
+// An alternative that exists only to report an error
+function isErrorAlternative(node) {
+  return node.type === `action` && /\b(error|expected)\s*\(|\bthrow\b/.test(node.code)
+}
+
+// the top-level alternatives, looking through wrappers such as $( ... )
+function alternativesOf(rule) {
+  let expr = rule.expression
+  while ([`named`, `group`, `text`].includes(expr.type) ||
+         (expr.type === `action` && unwrap(expr).type === `choice` && !isErrorAlternative(expr)))
+    expr = expr.expression
+  return expr.type === `choice` ? expr.alternatives : [expr]
+}
+
+const errorOnly = new Set(
+  grammar.rules.filter(rule => alternativesOf(rule).every(isErrorAlternative)).map(rule => rule.name)
+)
+
+// keyword rules: words followed by !IdentifierPart, named after the word. The words may have
+// alternatives and optional parts ("curve" "d"?), which are spelled out.
+function keywordSpellings(rule) {
   const expr = unwrap(rule.expression)
-  if (expr.type !== 'sequence') return ruleName
-  const first = expr.elements[0]
-  if (first.type === 'literal') return first.value
-  if (first.type === 'group') {
-    const inner = first.expression
-    if (inner.type === 'literal') return inner.value
-    if (inner.type === 'choice') return inner.alternatives[0].value
+  if (expr.type !== `sequence` || expr.elements.length !== 2) return null
+  const [words, guard] = expr.elements
+  if (guard.type !== `simple_not` || unwrap(guard.expression).name !== `IdentifierPart`) return null
+  const spellings = spellingsOf(words)
+  // a keyword is named after itself: SizeUnit is a set of words, not a keyword
+  return spellings?.some(s => s.toLowerCase() === rule.name.toLowerCase()) ? spellings : null
+}
+
+function spellingsOf(node) {
+  node = unwrap(node)
+  switch (node.type) {
+    case `literal`:  return [node.value]
+    case `optional`: {
+      const inner = spellingsOf(node.expression)
+      return inner && [``, ...inner]
+    }
+    case `choice`: {
+      const each = node.alternatives.map(spellingsOf)
+      return each.every(Boolean) ? each.flat() : null
+    }
+    case `sequence`: {
+      let result = [``]
+      for (const element of node.elements) {
+        const next = spellingsOf(element)
+        if (!next) return null
+        result = result.flatMap(prefix => next.map(word => prefix + word))
+      }
+      return result
+    }
+    default: return null
   }
-  if (first.type === 'choice') return first.alternatives[0].value
-  return ruleName
 }
 
-// Rules to suppress entirely in rendered syntax
-const SKIP_RULES = new Set([
-  '_', '__', 'EOF', 'WhiteSpace', 'LineTerminator', 'LineTerminatorSequence',
-  'Comment', 'IdentifierStart', 'IdentifierPart', 'UnicodeLetter',
-  'UnicodeCombiningMark', 'UnicodeDigit', 'UnicodeConnectorPunctuation',
-  'Ll', 'Lm', 'Lo', 'Lt', 'Lu', 'Mc', 'Mn', 'Nd', 'Nl', 'Pc', 'Zs',
-  'DecimalDigit', 'DecimalIntegerLiteral', 'ExponentPart', 'DecimalPoint',
-  'HexNibble', 'HexByte', 'LineContinuation', 'EscapeSequence',
-  'CharacterEscapeSequence', 'SingleEscapeCharacter', 'NonEscapeCharacter',
-  'EscapeCharacter', 'HexEscapeSequence', 'UnicodeEscapeSequence',
-  'DoubleStringCharacter', 'SingleStringCharacter',
-])
-
-// Rules that should inline to a readable placeholder
-const PLACEHOLDERS = {
-  'Expression':        '<expr>',
-  'NonShapeExpression': '<expr>',
-  'ExpressionOrBlock': '<body>',
-  'LogicalORExpression': '<expr>',
-  'PositionValue':     '<position>',
-  'Position':          '<position>',
-  'Identifier':        '<name>',
-  'String':            '<string>',
-  'Number':            '<number>',
-  'Color':             '<color>',
-  'Boolean':           '<boolean>',
-  'Cardinal':          '.<cardinal>',
-  'CardinalVector':    '<cardinal>',
-  'FontSpec':          '<font-spec>',
-  'Primary':           '<value>',
-  'FormalParameterList': '<params>',
-  'AnimationParams':   '[take <duration>] [ease <name>]',
-  'ArgumentList':      '<args>',
-  'LValue':            '<target>',
-  'BaseLValue':        '<target>',
-  'ActualNumber':      '<digits>',
-  'SimpleDecimalNumber': '<number>',
-  'ColorModel':        '<model>',
-  'ColorComponents':   '<components>',
-  'ElementList':       '<elements>',
-  'AssignmentOperator': '<op>',
-  // Shape option groups — show as <options> in shape variants
-  'SECommon':          '<option>',
-  'SESize':            '<option>',
-  'SERadius':          '<option>',
-  'SERadii':           '<option>',
-  'SELineEndings':     '<line-style>',
-  'SELineShape':       '<line-shape>',
-  'SELineLength':      '<option>',
-  'SEText':            '<option>',
-  'SETurn':            '<turn>',
-  'SEStroke':          '<option>',
-  'SEStrokeAttr':      '<option>',
-  'SELabel':           '<option>',
-  'SEPos':             '<option>',
-  'SERotation':        '<option>',
-  'SEFill':            '<option>',
-  'SEClass':           '<option>',
-  // Shape-specific rules
-  'WithConstraint':    'with [.<cardinal>] at <place>',
-  'FromPosition':      'from <position>',
-  'ToPosition':        'to <position>',
-  'LineOrAbbrev':      'Line',
-  'ShapeName':         '<Shape>',
-  'AttrName':          '<attr>',
-  'SkipArgs':          '[<distance>]',
-  'Smooth':            'smooth',
+const keywords = new Map()
+for (const rule of grammar.rules) {
+  const spellings = keywordSpellings(rule)
+  if (spellings) keywords.set(rule.name, spellings)
 }
 
-// ──────────────────────────────────────────────── Visitor-based syntax renderer
+// a character class too long to show, such as a Unicode category
+const isBigClass = rule => {
+  const expr = unwrap(rule.expression)
+  return expr.type === `class` && expr.parts.length > 6
+}
 
-const visit = peggy.compiler.visitor.build({
+// ──────────────────────────────────────────────── Rendering EBNF
 
-  rule(node) {
-    // Render a rule's expression, skipping the rule name wrapper
-    return visit(node.expression)
-  },
+// Precedence, loosest first, so a subexpression is parenthesized only when it
+// has to be
+const CHOICE = 0, SEQUENCE = 1, PREFIX = 2, SUFFIX = 3, PRIMARY = 4
 
-  named(node) {
-    // Strip peggy display-name annotations
-    return visit(node.expression)
-  },
+// A character as it is written: printable ASCII as itself, anything else
+// (tabs, a non-breaking space) escaped so it can be seen. `special` are the
+// characters that need a backslash where it is used.
+const NAMED_ESCAPES = { '\t': `\\t`, '\n': `\\n`, '\r': `\\r`, '\f': `\\f`, '\v': `\\v` }
 
-  action(node) {
-    // Strip action code blocks
-    return visit(node.expression)
-  },
+function escapeChar(c, special) {
+  if (NAMED_ESCAPES[c]) return NAMED_ESCAPES[c]
+  if (c === `\\` || special.includes(c)) return `\\${c}`
+  const code = c.codePointAt(0)
+  if (code >= 0x20 && code < 0x7f) return c
+  return `\\u${code.toString(16).toUpperCase().padStart(4, `0`)}`
+}
 
-  sequence(node) {
-    const parts = node.elements.map(e => visit(e)).filter(Boolean)
-    return parts.join(' ')
-  },
+const quote = s => {
+  const mark = s.includes(`'`) && !s.includes(`"`) ? `"` : `'`
+  return mark + [...s].map(c => escapeChar(c, mark)).join(``) + mark
+}
 
-  choice(node) {
-    const alts = node.alternatives.map(a => visit(a)).filter(Boolean)
-    if (alts.length === 0) return ''
-    if (alts.length === 1) return alts[0]
-    return alts.join(' | ')
-  },
+const classChar = c => escapeChar(c, `]^-`)
 
-  labeled(node) {
-    // Key insight: render through the inner expression rather than
-    // collapsing to <label>. The inner rendering has the real info.
-    const inner = visit(node.expression)
-    if (!inner) return ''
-    return inner
-  },
+// [text, precedence], or null when the node shows nothing
+function render(node) {
+  switch (node.type) {
+    case `rule`:
+    case `named`:
+    case `labeled`:
+    case `text`:
+    case `action`:
+      return render(node.expression)
 
-  rule_ref(node) {
-    const name = node.name
-    if (SKIP_RULES.has(name)) return ''
-    if (KEYWORD_RULES.has(name)) return keywordText(name)
-    if (name in PLACEHOLDERS) return PLACEHOLDERS[name]
-    return `<${name}>`
-  },
+    case `group`:
+      return render(node.expression)
 
-  literal(node) {
-    return node.value
-  },
+    case `choice`: {
+      const alternatives = node.alternatives
+        .filter(a => !isErrorAlternative(a) && !(unwrap(a).type === `rule_ref` && errorOnly.has(unwrap(a).name)))
+        .map(render).filter(Boolean)
+      if (alternatives.length === 0) return null
+      if (alternatives.length === 1) return alternatives[0]
+      return [alternatives.map(([text]) => text).join(` | `), CHOICE]
+    }
 
-  class(node) {
-    const parts = node.parts.map(([start, end]) => (end
-      ? `${regexpClassEscape(start)}-${regexpClassEscape(end)}`
-      : regexpClassEscape(start)))
-    return `[${node.inverted ? '^' : ''}${parts.join('')}]`
-  },
+    case `sequence`: {
+      const parts = node.elements.map(render).filter(Boolean)
+      if (parts.length === 0) return null
+      if (parts.length === 1) return parts[0]
+      return [parts.map(p => wrap(p, SEQUENCE)).join(` `), SEQUENCE]
+    }
 
-  any() {
-    return ''  // error-handler catch-alls, not real syntax
-  },
+    case `simple_not`: return prefixed(`!`, node.expression)
+    case `simple_and`: return prefixed(`&`, node.expression)
+    case `semantic_not`: return [`!{…}`, PRIMARY]
+    case `semantic_and`: return [`&{…}`, PRIMARY]
 
-  optional(node) {
-    const inner = visit(node.expression)
-    if (!inner) return ''
-    return `[${inner}]`
-  },
+    case `optional`:     return suffixed(node.expression, `?`)
+    case `zero_or_more`: return suffixed(node.expression, `*`)
+    case `one_or_more`:  return suffixed(node.expression, `+`)
 
-  zero_or_more(node) {
-    const inner = visit(node.expression)
-    if (!inner) return ''
-    return `${inner}*`
-  },
+    case `rule_ref`: {
+      const spellings = keywords.get(node.name)
+      if (spellings) {
+        const words = spellings.map(quote)
+        return words.length === 1 ? [words[0], PRIMARY] : [`( ${words.join(` | `)} )`, PRIMARY]
+      }
+      return [node.name, PRIMARY]
+    }
 
-  one_or_more(node) {
-    const inner = visit(node.expression)
-    if (!inner) return ''
-    return `${inner}+`
-  },
+    case `literal`:
+      return [quote(node.value) + (node.ignoreCase ? `i` : ``), PRIMARY]
 
-  group(node) {
-    return visit(node.expression)
-  },
+    case `class`: {
+      const parts = node.parts.map(p => (Array.isArray(p) ? `${classChar(p[0])}-${classChar(p[1])}` : classChar(p)))
+      return [`[${node.inverted ? `^` : ``}${parts.join(``)}]${node.ignoreCase ? `i` : ``}`, PRIMARY]
+    }
 
-  text(node) {
-    return visit(node.expression)
-  },
+    case `any`:
+      return [`.`, PRIMARY]
 
-  simple_not() {
-    return ''  // lookahead, invisible in syntax
-  },
+    default:
+      throw new Error(`extract-grammar: no rendering for a Peggy "${node.type}" node`)
+  }
+}
 
-  simple_and() {
-    return ''  // lookahead, invisible in syntax
-  },
+function wrap([text, precedence], needed) {
+  return precedence < needed ? `( ${text} )` : text
+}
 
-  semantic_not() { return '' },
-  semantic_and() { return '' },
+function prefixed(op, expression) {
+  const inner = render(expression)
+  return inner && [op + wrap(inner, SUFFIX), PREFIX]
+}
+
+function suffixed(expression, op) {
+  const inner = render(expression)
+  return inner && [wrap(inner, PRIMARY) + op, SUFFIX]
+}
+
+// The rule's alternatives, as text
+function definitionOf(rule) {
+  if (isBigClass(rule)) {
+    const note = commentAbove(rule).join(` `) || `a large character class`
+    return [`? Unicode ${rule.name}: ${note} ?`]
+  }
+  return alternativesOf(rule)
+    .filter(a => !isErrorAlternative(a) && !(unwrap(a).type === `rule_ref` && errorOnly.has(unwrap(a).name)))
+    .map(render)
+    .filter(Boolean)
+    .map(([text]) => text)
+}
+
+// The pieces of an alternative that a line can break between: it splits at
+// spaces, but not inside a quoted literal or a character class
+function tokensOf(text) {
+  const tokens = []
+  let current = ``
+  let inside = null
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i]
+    if (inside) {
+      current += c
+      if (c === `\\`) current += text[++i]
+      else if (c === inside) inside = null
+    }
+    else if (c === ` `) {
+      if (current) tokens.push(current)
+      current = ``
+    }
+    else {
+      current += c
+      if (c === `'` || c === `"`) inside = c
+      else if (c === `[`) inside = `]`
+    }
+  }
+  if (current) tokens.push(current)
+
+  // keep brackets with what they enclose, so a line neither ends in "(" nor
+  // starts with ")"
+  const joined = []
+  for (const token of tokens) {
+    const previous = joined[joined.length - 1]
+    if (previous !== undefined && (previous === `(` || previous.endsWith(` (`) || /^\)/.test(token)))
+      joined[joined.length - 1] = `${previous} ${token}`
+    else
+      joined.push(token)
+  }
+  return joined
+}
+
+function formatRule(rule) {
+  const name = rule.name
+  const out = []
+  const fits = name.length < INDENT - 1
+  if (!fits) out.push(name)
+
+  definitionOf(rule).forEach((alternative, i) => {
+    let line = (i === 0 && fits ? name.padEnd(INDENT) : ` `.repeat(INDENT)) + (i === 0 ? `= ` : `| `)
+    let atStart = true
+    for (const token of tokensOf(alternative)) {
+      if (!atStart && line.length + 1 + token.length > WIDTH) {
+        out.push(line)
+        line = ` `.repeat(INDENT + 4)
+        atStart = true
+      }
+      line += (atStart ? `` : ` `) + token
+      atStart = false
+    }
+    out.push(line)
+  })
+  out[out.length - 1] += ` ;`
+  return out.join(`\n`)
+}
+
+// ──────────────────────────────────────────────── Comments
+
+const isRuleBreak = line => /^\/\/\s*(-{3,}|={3,})/.test(line)
+
+// The comment block written directly above a rule. A section's introduction
+// (the comment under a // ==== or // ---- heading) goes to the first rule
+// after it.
+function commentAbove(rule) {
+  let i = rule.location.start.line - 2
+  const block = collectCommentBlock(i)
+  if (block.text.length > 0 || block.start === i + 1) {
+    if (block.text.length > 0 && !block.headed) return block.text
+  }
+  // skip blank lines to a section introduction
+  let j = i
+  while (j >= 0 && lines[j].trim() === ``) j--
+  const intro = collectCommentBlock(j)
+  if (intro.headed && !ruleBetween(j + 1, i)) return intro.text
+  return block.text
+}
+
+function collectCommentBlock(end) {
+  const text = []
+  let i = end
+  let headed = false
+  while (i >= 0 && /^\s*\/\//.test(lines[i])) {
+    if (isRuleBreak(lines[i].trim())) { headed = true; break }
+    text.unshift(lines[i].replace(/^\s*\/\/ ?/, ``))
+    i--
+  }
+  return { text: tidy(text), start: i + 1, headed }
+}
+
+function ruleBetween(from, to) {
+  return grammar.rules.some(r => r.location.start.line - 1 > from && r.location.start.line - 1 <= to)
+}
+
+// comment lines as paragraphs: blank comment lines separate them
+function tidy(text) {
+  const paragraphs = []
+  let current = []
+  for (const line of text) {
+    if (line.trim() === ``) {
+      if (current.length) paragraphs.push(current.join(` `))
+      current = []
+    }
+    else current.push(line.trim())
+  }
+  if (current.length) paragraphs.push(current.join(` `))
+  return paragraphs
+}
+
+// ──────────────────────────────────────────────── Ordering
+
+function referencesOf(rule) {
+  const found = []
+  const visit = peggy.compiler.visitor.build({
+    choice(node) {
+      node.alternatives
+        .filter(a => !isErrorAlternative(a))
+        .forEach(a => visit(a))
+    },
+    rule_ref(node) {
+      if (!keywords.has(node.name) && !errorOnly.has(node.name) && rules.has(node.name))
+        found.push(node.name)
+    },
+  })
+  if (!isBigClass(rule)) visit(rule.expression)
+  return [...new Set(found)]
+}
+
+// The rules reachable from Start, in the order they are first reached
+const reachable = [`Start`]
+const placed = new Set(reachable)
+for (let i = 0; i < reachable.length; i++) {
+  for (const name of referencesOf(rules.get(reachable[i]))) {
+    if (!placed.has(name)) {
+      placed.add(name)
+      reachable.push(name)
+    }
+  }
+}
+
+// Each rule goes under its immediate dominator: the nearest rule that every
+// route from Start to it passes through. A rule used in only one place sits
+// with its user; one used all over rises to their common ancestor.
+const referrers = new Map(reachable.map(name => [name, []]))
+for (const name of reachable)
+  for (const used of referencesOf(rules.get(name))) referrers.get(used).push(name)
+
+const dominators = new Map(reachable.map(name => [name, new Set(reachable)]))
+dominators.set(`Start`, new Set([`Start`]))
+for (let changed = true; changed;) {
+  changed = false
+  for (const name of reachable.slice(1)) {
+    const common = new Set(reachable)
+    for (const referrer of referrers.get(name))
+      for (const d of common) if (!dominators.get(referrer).has(d)) common.delete(d)
+    common.add(name)
+    if (common.size !== dominators.get(name).size) {
+      dominators.set(name, common)
+      changed = true
+    }
+  }
+}
+
+const children = new Map(reachable.map(name => [name, []]))
+for (const name of reachable.slice(1)) {
+  // the immediate dominator is the strict dominator with the most dominators
+  const parent = [...dominators.get(name)]
+    .filter(d => d !== name)
+    .reduce((a, b) => (dominators.get(a).size >= dominators.get(b).size ? a : b))
+  children.get(parent).push(name)
+}
+for (const list of children.values()) list.sort()
+
+if (process.argv.includes(`--tree`)) {
+  const show = (name, depth) => {
+    console.log(`  `.repeat(depth) + name)
+    children.get(name).forEach(child => show(child, depth + 1))
+  }
+  show(`Start`, 0)
+  process.exit(0)
+}
+
+// ──────────────────────────────────────────────── Writing
+
+const out = []
+const emit = (...text) => out.push(...text)
+
+emit(
+  `---`,
+  `title: picjs Grammar`,
+  `description: The picjs grammar, as annotated EBNF`,
+  `layout: layouts/doc.njk`,
+  `eleventyNavigation:`,
+  `  key: Grammar`,
+  `  order: 5`,
+  `---`,
+  ``,
+  `<!-- Generated from src/peg_parser/jp.pegjs by docs/tools/extract-grammar.cjs. Do not edit. -->`,
+  ``,
+  `This is the grammar that picjs's parser is built from, written as EBNF. It is`,
+  `generated from the parser's grammar, \`src/peg_parser/jp.pegjs\`, so it is always`,
+  `current.`,
+  ``,
+  `Rules are listed from the top down, starting with \`Start\`. Each rule appears`,
+  `once, under the first rule that uses it, and the rules under one rule are in`,
+  `alphabetical order. The notes come from the comments in the grammar.`,
+  ``,
+  `## Notation`,
+  ``,
+  `The grammar is a PEG (parsing expression grammar), so it differs from ordinary`,
+  `EBNF in two ways:`,
+  ``,
+  `- **Alternatives are tried in order**, and the first that matches wins: in`,
+  `  \`A | B\`, \`B\` is tried only if \`A\` fails.`,
+  `- **Lookaheads** check what comes next without consuming it: \`!X\` matches`,
+  `  only where \`X\` does not, and \`&X\` only where it does.`,
+  ``,
+  `| Notation | Means |`,
+  `|----------|-------|`,
+  `| \`'word'\` | the characters, exactly (\`'word'i\` ignores case) |`,
+  `| \`[a-z]\`, \`[^"]\` | one character in, or not in, the set |`,
+  `| \`.\` | any one character |`,
+  `| \`X?\`, \`X*\`, \`X+\` | \`X\` optionally, zero or more times, one or more times |`,
+  `| \`? … ?\` | described in words |`,
+  ``,
+  `Spacing is explicit: \`_\` is optional space, \`__\` is required space, and`,
+  `\`SameLineSpace\` is space that doesn't include a newline. Space includes`,
+  `comments. A keyword such as \`'move'\` only matches the whole word, so`,
+  `\`mover\` is a name, not \`move\` followed by \`r\`. The keywords, with their`,
+  `abbreviations, are [listed at the end](#keywords).`,
+  ``,
+)
+
+// A comment is prose, not markdown, except for `code`: escape the rest so
+// that <percent> or _ and __ show as written
+function asMarkdown(text) {
+  return text
+    .split(/(`[^`]*`)/)
+    .map((part, i) => (i % 2 ? part : part.replace(/[\\*_<>[\]|#]/g, c => `\\${c}`)))
+    .join(``)
+}
+
+function emitRule(name) {
+  // a large class's note is already in its definition
+  const notes = isBigClass(rules.get(name)) ? [] : commentAbove(rules.get(name))
+  emit(...notes.flatMap(p => [asMarkdown(p), ``]))
+  emit(`\`\`\`ebnf`, formatRule(rules.get(name)), `\`\`\``, ``)
+}
+
+function emitTree(name) {
+  emitRule(name)
+  children.get(name).forEach(emitTree)
+}
+
+// The program's spine, Start to Expression, comes first. Then there's a
+// section for each rule under Expression, holding the rules beneath it, and
+// finally the spacing rules that Start owns.
+const spine = [`Start`, `Program`, `ExpressionList`, `Expression`]
+spine.slice(1, -1).forEach((name, i) => {
+  if (children.get(name).join() !== spine[i + 2])
+    throw new Error(`extract-grammar: expected ${name} to lead only to ${spine[i + 2]}; update the spine`)
 })
 
+emit(`## Programs`, ``)
+spine.forEach(emitRule)
 
-// ──────────────────────────────────────────────── Helpers
-
-function renderRule(name) {
-  const rule = rulesByName[name]
-  if (!rule) return ''
-  return visit(rule).replace(/\s+/g, ' ').trim()
+for (const name of children.get(`Expression`)) {
+  emit(`## \`${name}\``, ``)
+  emitTree(name)
 }
 
-function renderAlternatives(name) {
-  const rule = rulesByName[name]
-  if (!rule) return []
-  const expr = unwrap(rule.expression)
-  if (expr.type === 'choice') {
-    return expr.alternatives
-      .map(a => visit(a).replace(/\s+/g, ' ').trim())
-      .filter(Boolean)
-      .filter(s => !isErrorAlternative(s))
-  }
-  const s = visit(rule).replace(/\s+/g, ' ').trim()
-  return (s && !isErrorAlternative(s)) ? [s] : []
-}
+emit(`## Spacing`, ``)
+children.get(`Start`).filter(name => name !== `Program`).forEach(emitTree)
 
-// Filter out PEG error-message alternatives (they use . or .* to consume input
-// and trigger a custom error message)
-function isErrorAlternative(s) {
-  return /^\S+\s+\.\*?$/.test(s)  // e.g. "move .*" or "rotate ."
-      || s === '.'
-      || /^\.+(\s\.+)*$/.test(s)  // sequences of dots like ". . . . ."
-      || /^\w+$/.test(s)          // bare keyword with no arguments (error fallback)
-      || /^<(?!digits)\w+>$/.test(s) // bare <placeholder> (fallthrough), but not <digits>
-}
+emit(`## Keywords`, ``)
+emit(
+  `These are written as words in the rules above. Where a keyword has more than`,
+  `one spelling, any of them may be used.`,
+  ``,
+  `| Keyword | Spellings |`,
+  `|---------|-----------|`,
+)
+for (const [name, spellings] of [...keywords].sort(([a], [b]) => a.localeCompare(b, `en`, { sensitivity: `base` })))
+  emit(`| ${name} | ${spellings.map(s => `\`${s}\``).join(`, `)} |`)
+emit(``)
 
-// ──────────────────────────────────────────────── Extraction
+fs.writeFileSync(OUTPUT_FILE, out.join(`\n`))
 
-function extractStatements() {
-  const descriptions = {
-    'Inspect':              'Debug: print the value of an expression',
-    'ShapeDefaultSetter':   'Set a default attribute for a shape type',
-    'Shape':                'Draw a shape',
-    'SetTime':              'Set the animation timeline position',
-    'AnimationSequence':    'One or more animations, optionally chained with "then"',
-    'Assignment':           'Assign a value to a variable or attribute',
-    'IfExpression':         'Conditional expression (if/else)',
-  }
-
-  const rule = rulesByName['Expression']
-  const expr = unwrap(rule.expression)
-  if (expr.type !== 'choice') return []
-
-  // Hand-curated overrides for statements that render poorly
-  const syntaxOverrides = {
-    'ShapeDefaultSetter': ['<Shape>.<attr> = <expr>', '<Shape>.<class>.<attr> = <expr>'],
-    'Assignment': ['<target> = <expr>', '<target> += <expr>', '<target> -= <expr>', '<target> *= <expr>', '<target> /= <expr>', '<target> %= <expr>'],
-    'SetTime': ['@@ <expr>'],
-  }
-
-  return expr.alternatives
-    .filter(a => a.type === 'rule_ref')
-    .map(a => ({
-      name: a.name,
-      syntax: syntaxOverrides[a.name] || renderAlternatives(a.name).filter(s => !isErrorAlternative(s)),
-      description: descriptions[a.name] || '',
-    }))
-}
-
-function extractShapes() {
-  const rule = rulesByName['Shape']
-  const expr = unwrap(rule.expression)
-  if (expr.type !== 'choice') return []
-
-  const SHAPE_OPTIONS = {
-    'Arc':     { options: ['SECommon', 'SELineEndings', 'SETurn'] },
-    'Box':     { options: ['SECommon', 'SESize', 'SERadii', 'WithConstraint'] },
-    'Circle':  { options: ['SECommon', 'SERadius', 'WithConstraint'] },
-    'Ellipse': { options: ['SECommon', 'SERadius', 'WithConstraint'] },
-    'Oval':    { options: ['SECommon', 'SERadius', 'WithConstraint'] },
-    'Line':    { options: ['SECommon', 'SELineEndings', 'SELineShape', 'SELineLength'] },
-    'Label':   { options: ['SECommon', 'SEText', 'WithConstraint'] },
-    'Face':    { options: [] },
-    'Skip':    { options: [] },
-  }
-
-  const shapes = {}
-  for (const [name, info] of Object.entries(SHAPE_OPTIONS)) {
-    shapes[name] = { name, variants: [], optionSets: info.options }
-  }
-
-  for (const alt of expr.alternatives) {
-    const syntax = visit(alt).replace(/\s+/g, ' ').trim()
-    if (!syntax || isErrorAlternative(syntax)) continue
-    const shapeName = identifyShape(alt)
-    if (!shapeName || !shapes[shapeName]) continue
-
-    // The grammar combines Circle/Ellipse/Oval into one alternative.
-    // Split it so each shape gets its own variant.
-    if (syntax.includes('Circle | Ellipse | Oval')) {
-      for (const sub of ['Circle', 'Ellipse', 'Oval']) {
-        if (shapes[sub]) {
-          shapes[sub].variants.push(
-            syntax.replace('Circle | Ellipse | Oval', sub)
-          )
-        }
-      }
-    } else {
-      shapes[shapeName].variants.push(syntax)
-    }
-  }
-
-  // Clean up shape variants: collapse repetitive option placeholders
-  for (const shape of Object.values(shapes)) {
-    shape.variants = shape.variants.map(v => {
-      return v
-        // Normalize various option-like placeholders to <option>
-        .replace(/<line-style>/g, '<option>')
-        .replace(/<line-shape>/g, '<option>')
-        .replace(/<turn>/g, '<option>')
-        // Collapse runs of <option> | <option> | ...
-        .replace(/(<option>)( \| <option>)+/g, '<option>')
-        // <option>* → [<options>...]
-        .replace(/<option>\*/g, '[<options>...]')
-        // standalone <option> in a variant → [<options>...]
-        .replace(/<option>/g, '[<options>...]')
-        // fix doubled brackets
-        .replace(/\[\[<options>\.\.\.]\]/g, '[<options>...]')
-        .replace(/\s+/g, ' ').trim()
-    })
-  }
-
-  return Object.values(shapes)
-}
-
-function identifyShape(node) {
-  const names = ['Arc','Box','Circle','Ellipse','Oval','Line','Label','Face','Skip']
-  function find(n) {
-    if (!n) return null
-    if (n.type === 'rule_ref' && names.includes(n.name)) return n.name
-    if (n.type === 'rule_ref' && n.name === 'LineOrAbbrev') return 'Line'
-    if (n.type === 'action') return find(n.expression)
-    if (n.type === 'named') return find(n.expression)
-    if (n.type === 'labeled') return find(n.expression)
-    if (n.type === 'sequence') {
-      for (let i = 0; i < Math.min(3, n.elements.length); i++) {
-        const r = find(n.elements[i])
-        if (r) return r
-      }
-    }
-    if (n.type === 'choice') {
-      for (const a of n.alternatives) {
-        const r = find(a)
-        if (r) return r
-      }
-    }
-    return null
-  }
-  return find(node)
-}
-
-function extractAnimations() {
-  const alts = renderAlternatives('Animation')
-  const animations = {}
-
-  for (const syntax of alts) {
-    let name = null
-    if (syntax.startsWith('move')) name = 'move'
-    else if (syntax.startsWith('rotate')) name = 'rotate'
-    else if (syntax.startsWith('set')) name = 'set'
-    if (!name) continue
-
-    if (!animations[name]) {
-      animations[name] = { name, variants: [], params: [
-        { name: 'take', type: '<expr>', description: 'animation duration' },
-        { name: 'ease', type: '<string>', description: 'easing function name' },
-      ]}
-    }
-    animations[name].variants.push(syntax)
-  }
-  return Object.values(animations)
-}
-
-function extractOptions() {
-  const defs = {
-    SECommon:       'Options available on most shapes',
-    SELabel:        'Attach a text label to a shape',
-    SEPos:          'Set the position of a shape',
-    SERotation:     'Rotate a shape',
-    SEFill:         'Set the fill color',
-    SEStrokeAttr:   'Set stroke color, thickness, or line style',
-    SEClass:        'Apply a CSS class to the shape',
-    SESize:         'Set width and/or height (Box)',
-    SERadius:       'Set the radius (Circle, Ellipse, Oval)',
-    SERadii:        'Set corner radii (Box)',
-    SELineEndings:  'Line path style and arrow markers',
-    SELineShape:    'Line interpolation: straight, stepped, or smooth',
-    SELineLength:   'Set the length of a line',
-    SEText:         'Label text options: alignment and font',
-    SETurn:         'Arc turn direction: cw, ccw, or angle',
-    WithConstraint: 'Position a shape by constraining a cardinal point to a place',
-  }
-
-  // Hand-curated overrides for options that render poorly from the grammar
-  const overrides = {
-    SECommon: [
-      '"<text>"           — label',
-      'rotation <angle> [about <position>]',
-      'at <position> | (<x>, <y>) | x <n> | y <n>',
-      'fill <color>',
-      'stroke <color>',
-      'thickness <n> | solid | dotted | dashed',
-      '.<class-name>',
-    ],
-    SELineEndings: [
-      '<start><path><end>',
-      'start/end markers: < (arrow) | > (arrow) | | (bar) | o (dot)',
-      'path style: -- (straight) | ~~ (smooth)',
-    ],
-    SEText: [
-      'align .<cardinal>',
-      'font <font-spec>',
-    ],
-    SEPos: [
-      'at <expr>',
-      '(<x>, <y>)',
-      'x <expr>',
-      'y <expr>',
-    ],
-    SERadii: [
-      'rx <expr>',
-      'ry <expr>',
-    ],
-    SESize: [
-      '<width> x <height>',
-      'width <expr>',
-      'height <expr>',
-    ],
-    SELineShape: [
-      'straight',
-      'stepped',
-      'smooth',
-    ],
-    WithConstraint: [
-      'with [.<cardinal>] [at] <place>',
-    ],
-    SETurn: [
-      '[turn] cw | ccw',
-      'turn <angle>',
-    ],
-  }
-
-  const result = {}
-  for (const [name, description] of Object.entries(defs)) {
-    const syntax = overrides[name] || renderAlternatives(name)
-    result[name] = { description, syntax }
-  }
-  return result
-}
-
-function extractExpressions() {
-  return {
-    precedence: [
-      { level: 1, name: 'Logical OR',       operators: ['||'] },
-      { level: 2, name: 'Logical AND',      operators: ['&&'] },
-      { level: 3, name: 'Equality',         operators: ['==', '!='] },
-      { level: 4, name: 'Relational',       operators: ['<', '>', '<=', '>='] },
-      { level: 5, name: 'Additive',         operators: ['+', '-'] },
-      { level: 6, name: 'Multiplicative',   operators: ['*', '/', '%'] },
-      { level: 7, name: 'Power',            operators: ['^'] },
-      { level: 8, name: 'Unary',            operators: ['+', '-', '!'] },
-    ],
-    qualifiers: [
-      { syntax: '<expr>(<args>)',   description: 'function call' },
-      { syntax: '<expr>[<index>]',  description: 'index access' },
-      { syntax: '<expr>.<attr>',    description: 'attribute access' },
-    ],
-    conditionals: renderAlternatives('IfExpression')
-      .filter(s => s.startsWith('if')),
-    assignment: {
-      operators: ['=', '+=', '-=', '*=', '/=', '%='],
-      syntax: renderAlternatives('Assignment'),
-    },
-    functions: {
-      syntax: renderAlternatives('FunctionDefinitionExpression'),
-    },
-  }
-}
-
-function extractValues() {
-  return [
-    {
-      name: 'Number',
-      syntax: renderAlternatives('Number'),
-      description: 'Integer, decimal, scientific notation; append % to divide by 100',
-      examples: ['42', '3.14', '50%', '1e3', '.5'],
-    },
-    {
-      name: 'Boolean',
-      syntax: ['true | false'],
-      description: 'Boolean true or false',
-    },
-    {
-      name: 'Color',
-      syntax: [
-        '<model>(<r>, <g>, <b>[, <a>])',
-        '#rrggbb[aa]',
-        '#rgb[a]',
-        '~<name>',
-      ],
-      description: 'Colors in various formats',
-      examples: ['#f00', '#ff0000', '#ff000080', '~red', 'rgb(255, 0, 0)', 'hsl(0, 100, 50)', 'oklch(63, 0.26, 29)'],
-      models: {
-        rgb:   { params: ['r (0-255)', 'g (0-255)', 'b (0-255)', '[alpha (0-1)]'] },
-        hsl:   { params: ['h (0-360)', 's (0-100)', 'l (0-100)', '[alpha (0-1)]'] },
-        hsv:   { params: ['h (0-360)', 's (0-100)', 'v (0-100)', '[alpha (0-1)]'] },
-        oklch: { params: ['L (0-100)', 'C (0-0.4)', 'h (0-360)', '[alpha (0-1)]'] },
-      },
-    },
-    {
-      name: 'String',
-      syntax: [`"..." | '...'`],
-      description: 'Single or double quoted, with standard escape sequences (\\n, \\t, \\\\, etc.)',
-    },
-    {
-      name: 'Position',
-      syntax: renderAlternatives('Position'),
-      description: 'An (x, y) coordinate pair',
-      examples: ['(100, 200)', '(x + 10, y)'],
-    },
-    {
-      name: 'Array',
-      syntax: ['[<expr>, ...]', '[]'],
-      description: 'A list of values',
-      examples: ['[1, 2, 3]', '[]', '[~red, ~blue]'],
-    },
-    {
-      name: 'Range',
-      syntax: ['[<start> .. <end>]'],
-      description: 'An inclusive range between two values',
-      examples: ['[1..10]', '[0..n-1]', '[~red .. ~blue]'],
-    },
-    {
-      name: 'Timeline',
-      syntax: ['@ (read current time)', '@@ (advance timeline)'],
-      description: 'Access the animation timeline',
-    },
-    {
-      name: 'Function',
-      syntax: renderAlternatives('FunctionDefinitionExpression'),
-      description: 'Lambda/arrow function expressions',
-      examples: ['n => n * 2', '(x, y) => x + y', '=> Box'],
-    },
-  ]
-}
-
-// ──────────────────────────────────────────────── Builtin extraction (from .ts)
-
-function extractBuiltins() {
-  return {
-    functions: extractTNatives(path.join(ROOT, 'src/builtins.ts')),
-    typeMethods: extractTypeMethods(),
-  }
-}
-
-function extractTNatives(filePath) {
-  const src = fs.readFileSync(filePath, 'utf8')
-  return extractTNativesFromSource(src)
-}
-
-function extractTypeMethods() {
-  const typeFiles = {
-    'Number':   'src/types/tnumber.ts',
-    'List':     'src/types/tlist.ts',
-    'Color':    'src/types/tcolor.ts',
-    'Range':    'src/types/trange.ts',
-    'String':   'src/types/tstring.ts',
-    'Position': 'src/types/tposition.ts',
-    'Timeline': 'src/types/ttimeline.ts',
-    'Font':     'src/types/tfont.ts',
-    'Bool':     'src/types/tbool.ts',
-  }
-
-  const iterableSrc = fs.readFileSync(path.join(ROOT, 'src/types/iterable.ts'), 'utf8')
-  const types = {}
-
-  for (const [typeName, relPath] of Object.entries(typeFiles)) {
-    const filePath = path.join(ROOT, relPath)
-    const src = fs.readFileSync(filePath, 'utf8')
-
-    const methods = extractTNatives(filePath)
-
-    // Add iterable mixin methods if used
-    if (src.includes('Iterable.addToAttrs') || src.includes('addToAttrs(this)')) {
-      methods.push(...extractTNativesFromSource(iterableSrc))
-    }
-
-    // Computed attributes via handle_attr_X()
-    const attrs = []
-    const attrRe = /handle_attr_(\w+)\s*\(\)/g
-    let am
-    while ((am = attrRe.exec(src)) !== null) {
-      attrs.push({ name: am[1] })
-    }
-
-    // Operators
-    const operators = []
-    const opMap = {
-      'Plus':'+', 'Minus':'-', 'Times':'*', 'Divide':'/',
-      'Pow':'^', 'Equal_to':'==', 'Not_equal_to':'!=',
-      'Less_than':'<', 'Less_than_or_equal_to':'<=',
-      'Greater_than_than':'>', 'Greater_than_than_or_equal_to':'>=',
-    }
-    const seenOps = new Set()
-    const opRe = /op(Plus|Minus|Times|Divide|Pow|Equal_to|Not_equal_to|Less_than_or_equal_to|Greater_than_than_or_equal_to|Less_than|Greater_than_than)\s*\(/g
-    let om
-    while ((om = opRe.exec(src)) !== null) {
-      const sym = opMap[om[1]]
-      if (sym && !seenOps.has(sym)) { seenOps.add(sym); operators.push(sym) }
-    }
-
-    types[typeName] = { methods, attrs, operators }
-  }
-
-  return types
-}
-
-function extractTNativesFromSource(src) {
-  const results = []
-  // Param list uses backtick-delimited entries which may contain ] (e.g. `[step]`)
-  // The [\s`,]* prefix handles empty arrays like [ ] as well as spacing
-  const re = /new TNative\(\s*`([^`]+)`\s*,\s*\[[\s`,]*((?:`[^`]*`[\s,]*)*)\]\s*,\s*((?:`[^`]*`\s*(?:\+\s*)?)+)/g
-  let m
-  while ((m = re.exec(src)) !== null) {
-    const name = m[1].replace(/\(\)$/, '')
-    const paramsStr = m[2]
-    const descRaw = m[3]
-    const desc = descRaw
-      .replace(/`\s*\+\s*`/g, '')
-      .replace(/^`|`$/g, '')
-      .replace(/\$\{[^}]+\}/g, '…')
-      .trim()
-    const params = paramsStr
-      ? paramsStr.split(',').map(p => p.trim().replace(/`/g, '')).filter(Boolean)
-      : []
-    results.push({ name, params, description: desc })
-  }
-  return results
-}
-
-// ──────────────────────────────────────────────── Description fixups
-
-// Some TNative descriptions have template literals that reference runtime values.
-// We resolve them here rather than trying to eval the source.
-const DESC_FIXUPS = {
-  'Style is one of:':
-    'Apply easing to the interpolation. Style is one of: linear, cubicIn, cubicOut, cubic, quadIn, quadOut, quad, bounce',
-}
-
-function fixupDescriptions(obj) {
-  if (!obj || typeof obj !== 'object') return obj
-  if (Array.isArray(obj)) { obj.forEach(fixupDescriptions); return obj }
-  for (const [k, v] of Object.entries(obj)) {
-    if (k === 'description' && typeof v === 'string') {
-      for (const [pattern, replacement] of Object.entries(DESC_FIXUPS)) {
-        if (v.includes(pattern)) {
-          obj[k] = replacement
-          break
-        }
-      }
-    } else {
-      fixupDescriptions(v)
-    }
-  }
-  return obj
-}
-
-// ──────────────────────────────────────────────── Assemble and write
-
-const output = {
-  meta: {
-    generatedAt: new Date().toISOString(),
-    grammarFile: 'src/peg_parser/jp.pegjs',
-    ruleCount: grammar.rules.length,
-  },
-  statements: extractStatements(),
-  shapes: extractShapes(),
-  animations: extractAnimations(),
-  options: extractOptions(),
-  expressions: extractExpressions(),
-  values: extractValues(),
-  builtins: extractBuiltins(),
-}
-
-fixupDescriptions(output)
-fs.writeFileSync(OUTPUT_FILE, JSON.stringify(output, null, 2))
-console.log(`Wrote ${OUTPUT_FILE}`)
-console.log(`  ${output.statements.length} statements`)
-console.log(`  ${output.shapes.length} shapes`)
-console.log(`  ${output.animations.length} animations`)
-console.log(`  ${Object.keys(output.options).length} option groups`)
-console.log(`  ${output.values.length} value types`)
-console.log(`  ${output.builtins.functions.length} builtin functions`)
-console.log(`  ${Object.keys(output.builtins.typeMethods).length} types with methods`)
+const unreachable = grammar.rules
+  .map(rule => rule.name)
+  .filter(name => !placed.has(name) && !keywords.has(name) && !errorOnly.has(name))
+console.log(`Wrote ${path.relative(ROOT, OUTPUT_FILE)}: ${placed.size} rules, ${keywords.size} keywords`)
+if (unreachable.length > 0)
+  console.log(`Not reachable from Start, so left out: ${unreachable.join(`, `)}`)

@@ -14,6 +14,7 @@ export default {
 		{ name: "Animation", link: "/animation/" },
 		{ name: "Reference", link: "/picjs-reference/" },
 		{ name: "Quick Ref", link: "/quick-reference/" },
+		{ name: "Grammar", link: "/grammar/" },
 		{ name: "Integrating", link: "/integrating/" },
 		{ name: "Hanoi", link: "/hanoi-breakdown/" },
 		{ name: "Editor/Playground", link: "/editor/" },
