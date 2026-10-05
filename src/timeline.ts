@@ -10,6 +10,7 @@ import * as TLE from "./timeline/tlentries.js"
 import { BigNumber } from "./timeline/tlentries.js"
 import { Dispatcher } from "./dispatcher.js"
 import { SBase } from "./shapes.js"
+import type { TA } from "./types.js"
 
 export type ExportedTimelineEntry = PriorityQueueItem<TLE.TLEntry>
 
@@ -121,11 +122,11 @@ export class Timeline {
     }
   }
 
-  updateOtherGeometry(shape: SBase, attr: string, value: any) {
+  updateOtherGeometry(shape: SBase, attr: string, value: TA) {
     this.addToTimeline(new TLE.UpdateShapeNoAnimation(shape, this.recordingTime, attr, value))
   }
 
-  updateShapeStyle(shape: SBase, attr: string, value: any) {
+  updateShapeStyle(shape: SBase, attr: string, value: TA) {
     this.addToTimeline(new TLE.UpdateShapeNoAnimation(shape, this.recordingTime, attr, value))
   }
 
@@ -134,7 +135,7 @@ export class Timeline {
   }
 
   // Like updateShapeStyle, but at the given time rather than at @.
-  updateShapeStyleAt(time: number, shape: SBase, attr: string, value: any) {
+  updateShapeStyleAt(time: number, shape: SBase, attr: string, value: TA) {
     this.addToTimeline(new TLE.UpdateShapeNoAnimation(shape, time, attr, value))
   }
 

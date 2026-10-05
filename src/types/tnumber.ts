@@ -2,6 +2,8 @@ import { Interpreter } from "../interpreter.js"
 import { AnimationStyle, TA, TInterpolatable, BinaryOperatorMethod } from "./_base.js"
 import { TBool } from "./tbool.js"
 import { TNative } from "./tnative.js"
+import { TFunction } from "./tfunction.js"
+import { functionArgument, numberArgument } from "./arguments.js"
 
 // Define our native functions out here, so we can share pointers to them
 // between all instances of Numbers. (We don't make them instance methods because they
@@ -34,20 +36,19 @@ export class TNumber extends TInterpolatable<number> {
       `return the number that is _ratio_ of the way between this number and other ` +
       `(where ratio == 0 returns this number and ratio == 1 the other)`,
 
-      (_: Interpreter, other: TA, ratio: TA) => {
-        return this.interpolate(other, ratio.toNative())
+      (_, other, ratio) => {
+        numberArgument(`interpolate`, `other`, other)
+        return this.interpolate(other as TNumber, numberArgument(`interpolate`, `ratio`, ratio))
       })
 
     this.attrs.times = new TNative(
       `times`, [ `callback` ],
       `Invoke the callback «number» times, passing it from 0 to n-1`,
-      (interpreter: Interpreter, callback) => {
-        for (let i = 0; i < this.value; i++) {
-          const arg = []
-          if (callback.formals.length > 0)
-            arg.push(new TNumber(i))
-          interpreter.callFunction(callback, arg)
-        }
+      (interpreter, callback) => {
+        const fn = functionArgument(`times`, `callback`, callback)
+        const wantsIndex = fn instanceof TFunction ? fn.formals.length > 0 : fn.maxParams > 0
+        for (let i = 0; i < this.value; i++)
+          interpreter.callFunction(fn, wantsIndex ? [new TNumber(i)] : [])
         return this
       })
   }
@@ -103,7 +104,7 @@ export class TNumber extends TInterpolatable<number> {
     )
   }
 
-  interpolate(other: TA, ratio: number) {
+  interpolate(other: TNumber, ratio: number) {
     const v1 = this.value
     const v2 = other.value
     return new TNumber(v1 + (v2 - v1) * ratio)

@@ -1,7 +1,7 @@
 import { AnimationStyle, TBase, TA } from "./_base.js"
 
 export class TBool extends TBase<boolean> {
-  constructor(value: any) {
+  constructor(value: boolean) {
     super(!!value, AnimationStyle.none)
   }
 

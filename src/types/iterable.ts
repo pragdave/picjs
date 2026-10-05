@@ -8,10 +8,17 @@ import { TNative } from "./tnative.js"
 import { TNumber } from "./tnumber.js"
 import { TA, TBase } from "../types.js"
 import { Interpreter } from "../interpreter.js"
+import { functionArgument } from "./arguments.js"
 
 const EachMsg = `.each() and map() take a optional step value and a required callback function`
 
 type IterableCallback = (thisBeingIterated:TA, step: number) => void
+
+// each and map take an optional step before the callback
+function stepAndCallback(fn: string, args: TA[]) {
+  const [ step, callback ] = args.length > 1 ? args : [ undefined, args[0] ]
+  return { step, callback: functionArgument(fn, `callback`, callback) }
+}
 
 // What a collection provides to mix this in
 export interface IterableHost extends TBase<unknown> {
@@ -37,7 +44,7 @@ export function addToAttrs(host: IterableHost) {
     })
 
 
-  function iterate(host: IterableHost, _interpreter: Interpreter, requestedStep: TNumber, callback: IterableCallback) {
+  function iterate(host: IterableHost, _interpreter: Interpreter, requestedStep: TA | undefined, callback: IterableCallback) {
     let step
     if (requestedStep) {
       if (requestedStep instanceof TNumber) {
@@ -77,12 +84,9 @@ export function addToAttrs(host: IterableHost) {
     `invoke 'callback' with each item in turn. The optional step ` +
     `allows you to select each nth item. It 0.0 < step < 1.0, then ` +
     `we do interpolation`,
-    (interpreter, requestedStep, callback) => {
-      if (!callback) {
-        callback = requestedStep
-        requestedStep = undefined
-      } 
-      iterate(host, interpreter, requestedStep, (value, index) => {
+    (interpreter, ...args) => {
+      const { step, callback } = stepAndCallback(`each`, args)
+      iterate(host, interpreter, step, (value, index) => {
         interpreter.callFunction(callback, [ value, new TNumber(index) ])
       })
 
@@ -96,16 +100,11 @@ export function addToAttrs(host: IterableHost) {
     `allows you to select each nth item. It 0.0 < step < 1.0, then ` +
     `we do interpolation`,
 
-    (interpreter, requestedStep, callback) => {
-
+    (interpreter, ...args) => {
+      const { step, callback } = stepAndCallback(`map`, args)
       const result: TA[] = []
-      
-      if (!callback) {
-        callback = requestedStep
-        requestedStep = null
-      } 
 
-      iterate(host, interpreter, requestedStep, (value, index) => {
+      iterate(host, interpreter, step, (value, index) => {
         result.push(interpreter.callFunction(callback, [ value, new TNumber(index) ]))
       })
 

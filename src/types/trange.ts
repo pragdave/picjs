@@ -3,8 +3,8 @@ import { AnimationStyle, TBase, TA, TInterpolatable } from "./_base.js"
 import { TList } from "./tlist.js"
 import { TNative } from "./tnative.js"
 import { TNumber } from "./tnumber.js"
-import { TString } from "./tstring.js"
 import { EasingNames } from "../animators/_base.js"
+import { numberArgument, stringArgument } from "./arguments.js"
 
 
 const BFreq = 0.3 
@@ -81,14 +81,12 @@ export class TRange extends TBase<null> {
     this.attrs.ease = new TNative(`ease`, [ `style` ],
       `Apply easing to the interpolation. Style is one of: ${Object.keys(Easing).join(`, `)}`,
 
-      (_, style: TString) => {
-        const name = style.toNative()
-        if (name in Easing) {
-          this.easingFunction = Easing[<EasingNames>name]
-          return this
-        }
-        else
-          throw new RTE(`unknown easting style "${name}`)
+      (_, style) => {
+        const name = stringArgument(`ease`, `style`, style)
+        if (!(name in Easing))
+          throw new RTE(`ease needs one of ${Object.keys(Easing).join(`, `)}, but was given "${name}"`)
+        this.easingFunction = Easing[<EasingNames>name]
+        return this
       })
 
     //---------------------------------------------------------------------- interpolate
@@ -96,9 +94,7 @@ export class TRange extends TBase<null> {
       `return the value that is _ratio_ of the way between start and end ` +
       `(where ratio is between 0 and 1 inclusive)`,
 
-      (_, ratio) =>  {
-        return this.interpolate(ratio.toNative())
-      })
+      (_, ratio) => this.interpolate(numberArgument(`interpolate`, `ratio`, ratio)))
 
     //---------------------------------------------------------------------- steps
     this.attrs.steps = new TNative(`steps`, [ `number_of_steps`, `callback` ],

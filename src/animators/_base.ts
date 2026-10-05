@@ -223,6 +223,8 @@ export function createAttributeAnimator<T>(
   params: AnimationParams
 ) {
   const currentValue = shape.getAnimatableAttr(attr)
+  if (!currentValue.isSameTypeAs(finalValue))
+    throw new RTE(`${shape.nameForErrors()}'s ${attr} can't be set to ${finalValue.nameForErrors()}`)
 
   switch (currentValue.supportedAnimationStyle()) {
     case `continuous`:

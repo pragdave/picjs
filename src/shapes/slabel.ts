@@ -10,6 +10,7 @@ import { ShapeToRenderer } from "../render.js"
 import { Palette } from "../palette.js"
 import { parseFontSize } from "../renderers/svg/attribute_converters.js"
 import { layoutText } from "../text-layout.js"
+import type { TA } from "../types.js"
 
 // const DefaultsForShape = { 
 //     fill: `pink`,
@@ -161,7 +162,7 @@ export class SLabel extends SBase {
   get font() { return this.params.font }
   handle_attr_font() { return new TFont(this.font) }
 
-  setAtAttr(name: string, value: any) {
+  setAtAttr(name: string, value: TA) {
     if (name === `text`) {
       this.text = value.toNative()
       this.calculateDimensions()

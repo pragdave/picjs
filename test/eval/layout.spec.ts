@@ -2,6 +2,7 @@ import { newDispatcher } from "../helpers/eval.js"
 import { ParseStatus, parseToAST } from "../../src/parser.js"
 import { parse } from "../../src/peg_parser/jp.js"
 import * as TLE from "../../src/timeline/tlentries.js"
+import { TNumber, TPosition } from "../../src/types.js"
 
 function runProgram(src: string) {
   const parseResult = parseToAST(parse, src, `Start`, false)
@@ -182,8 +183,8 @@ describe(`layout`, () => {
         view.step()
       `)
       // y grows downwards, so b.c at (10, 10) means b.s was at (10, 11)
-      const seen = dispatcher.getCurrentBinding().get_variable_value(`seen`).value
-      expect(seen.map((p: any) => [p.x, p.y])).toEqual([[10, 11], [20, 0]])
+      const seen = dispatcher.getCurrentBinding().get_variable_value(`seen`).value as TPosition[]
+      expect(seen.map(p => [p.x, p.y])).toEqual([[10, 11], [20, 0]])
     })
 
     it(`runs every changed shape's transition from the same @`, () => {
@@ -325,8 +326,8 @@ describe(`layout`, () => {
         expect(xAt(src, 1, 1)).toBeCloseTo(200)
         const dispatcher = runProgram(src)
         expect(dispatcher.currentRecordingTime()).toBe(3)
-        const seen = dispatcher.getCurrentBinding().get_variable_value(`seen`).value
-        expect(seen.map((p: any) => [p.x, p.y])).toEqual([[200, 0]])
+        const seen = dispatcher.getCurrentBinding().get_variable_value(`seen`).value as TPosition[]
+        expect(seen.map(p => [p.x, p.y])).toEqual([[200, 0]])
       })
 
       it(`view.exit replaces the fade out, and is given where the shape was`, () => {
@@ -341,8 +342,8 @@ describe(`layout`, () => {
         expect(opacityAt(src, 3, 0)).toBe(1)
         const dispatcher = runProgram(src)
         expect(dispatcher.currentRecordingTime()).toBe(3)
-        const seen = dispatcher.getCurrentBinding().get_variable_value(`seen`).value
-        expect(seen.map((p: any) => [p.x, p.y])).toEqual([[100, 0]])
+        const seen = dispatcher.getCurrentBinding().get_variable_value(`seen`).value as TPosition[]
+        expect(seen.map(p => [p.x, p.y])).toEqual([[100, 0]])
       })
 
       it(`must be functions`, () => {
@@ -410,8 +411,8 @@ describe(`layout`, () => {
         spots = [150, 250, 350]
         view.step(0.25)
       `)
-      const times = dispatcher.getCurrentBinding().get_variable_value(`times`).value
-      expect(times.map((t: any) => t.value)).toEqual([0, 0.25, 0.5])
+      const times = dispatcher.getCurrentBinding().get_variable_value(`times`).value as TNumber[]
+      expect(times.map(t => t.value)).toEqual([0, 0.25, 0.5])
     })
 
     it(`must be a number of seconds that is not negative`, () => {

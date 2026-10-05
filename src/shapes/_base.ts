@@ -7,6 +7,7 @@ import * as AST from "../ast.js"
 import { isKnownAttribute, acceptedAttributesFor } from "./attributes.js"
 import { Binding } from "../binding.js"
 import type { SGroup } from "./sgroup.js"  // type-only import avoids circular dependency
+import type { TA } from "../types.js"
 
 export type ShapeArgs = Record<string, any>
 export type ProcessedWithConstraint =  {
@@ -302,8 +303,8 @@ export class SBase extends TBase<null> {
   // ------------------- this part is used by the interpreter. all values are wrapped in Txxx types
   //
 
-  handle_attr_x()         { return new TNumber(this.x || -1)          }
-  handle_attr_y()         { return new TNumber(this.y || -1)          }
+  handle_attr_x()         { return new TNumber(this.anchor.x)         }
+  handle_attr_y()         { return new TNumber(this.anchor.y)         }
   handle_attr_wid()       { return new TNumber(this.width)            }
   handle_attr_width()     { return new TNumber(this.width)            }
   handle_attr_ht()        { return new TNumber(this.height)           }
@@ -334,7 +335,7 @@ export class SBase extends TBase<null> {
   // We still update the shape version of the attribute now: the repr version will
   // get updated when the timeline triggers a geometry update
 
-  setAtAttr(name: string, value: any) {
+  setAtAttr(name: string, value: TA) {
     if (name.startsWith(`_`)) {
       this.hidden[name.slice(1)] = value
       return this
@@ -348,7 +349,9 @@ export class SBase extends TBase<null> {
       this.dispatcher.setCardinalToPoint(this, name as Cardinals, value.x, value.y)
     }
     else if (OtherGeometryAttributes.has(name)) {
-      this.dispatcher.updateOtherGeometry(this, name, value.toNative())
+      if (!(value instanceof TNumber))
+        throw new RTE(`A shape's ${name} must be a number, but this is ${value.nameForErrors()}`)
+      this.dispatcher.updateOtherGeometry(this, name, value)
     }
     else if (StyleAttributes.has(name)) {
       this.dispatcher.updateShapeStyle(this, name, value)
@@ -497,7 +500,17 @@ export class SBase extends TBase<null> {
     return this.handleBuiltInAttribute(attr)
   }
 
-  setAnimatableAttr(attr: string, newValue: any) {
+  setAnimatableAttr(attr: string, newValue: TA) {
+    // x and y are the anchor point: moving it moves the shape
+    if (attr === `x` || attr === `y`) {
+      if (!(newValue instanceof TNumber))
+        throw new RTE(`A shape's ${attr} must be a number, but this is ${newValue.nameForErrors()}`)
+      const anchor = this.anchor
+      const value = newValue.value
+      this.setAnimatablePosition(attr === `x` ? value : anchor.x, attr === `y` ? value : anchor.y)
+      return
+    }
+
     const paramName = ParamAliases[attr] || attr
     this.params[paramName] = newValue.toNative()
 

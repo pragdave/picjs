@@ -8,6 +8,13 @@
 * Fix changing a palette-colored shape's color after creating it (`b.fill = ~b5`, or animating it
   with `set`) having no visible effect; labels inside it now re-color to match
 * Fix the built library failing to render an empty diagram, or one that draws nothing
+* Fix assigning a shape's `x`, `y`, `width` or `height` after creating it (`b.width = 3`), which
+  failed; `x` and `y` now move the shape, and can be animated with `set`
+* Fix a shape at x or y = 0 reporting it as -1
+* Native functions (`sin`, `polar`, a color's `darken` and `spin`, a number's `times`, a list's
+  `each` and `map`, a range's `ease`, and others) report an argument of the wrong kind, rather
+  than giving a wrong answer or failing obscurely; so do assignments of the wrong kind to a
+  position's or shape's `x` and `y`, `@.now`, and `set` to a different kind of value
 * Report a bad `take`, calling something that isn't a function, a list index out of range or not a
   number, arithmetic between a list and something other than a number or a list of the same
   length, `^` on a value that doesn't support it, and `move` given something other than a shape or

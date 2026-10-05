@@ -2,8 +2,8 @@ import { RTE } from "../runtime_error.js"
 
 // Late-bound factory for the `has()` method — avoids circular imports
 // (TNative → Interpreter → TBase). Registered once from types.ts.
-let _hasMethodFactory: ((host: TBase<any>) => any) | null = null
-export function registerHasMethodFactory(factory: (host: TBase<any>) => any) {
+let _hasMethodFactory: ((host: TA) => TA) | null = null
+export function registerHasMethodFactory(factory: (host: TA) => TA) {
   _hasMethodFactory = factory
 }
 
@@ -13,7 +13,7 @@ export enum AnimationStyle  {
   crossfade = `crossfade`,
 }
 
-export type TA = TBase<any>
+export type TA = TBase<unknown>
 
 // The methods that implement the binary operators
 export type BinaryOperatorMethod =
@@ -22,7 +22,7 @@ export type BinaryOperatorMethod =
   `opGreater_than_than` | `opGreater_than_than_or_equal_to`
 
 export class TBase<ValueType, > {
-  attrs: Record<string, any>
+  attrs: Record<string, TA>
   typeName = this.constructor.name
 
 
@@ -72,17 +72,17 @@ export class TBase<ValueType, > {
     return this.handleBuiltInAttribute(name)
   }
 
-  setAtAttr(name: string, value: any) {
+  setAtAttr(name: string, value: TA) {
     this.attrs[name] = value
     return this
   }
 
-  getAtIndex(index: any) {
+  getAtIndex(index: TA) {
     const key = String(index?.value ?? index)
     return this.getAtAttr(key)
   }
 
-  setAtIndex(index: any, value: any) {
+  setAtIndex(index: TA, value: TA) {
     const key = String(index?.value ?? index)
     return this.setAtAttr(key, value)
   }
@@ -108,13 +108,13 @@ export class TBase<ValueType, > {
     return String(this.toNative())
   }
 
-  toNative(): any {
+  toNative(): unknown {
     throw new Error(`type ${this.constructor.name} does not implement "toNative()"`)
   }
 
 
   toString() {
-    return this.toNative().toString()
+    return String(this.toNative())
   }
 
   operatorNotSupported(op: string): never {
@@ -127,8 +127,9 @@ export class TBase<ValueType, > {
     return this.constructor.name === other.constructor.name
   }
 
-  attributesAsTable() {
-    const result:Record<string, any> = {}
+  // For showing this value's attributes (in the playground, say)
+  attributesAsTable(): Record<string, unknown> {
+    const result: Record<string, TA> = {}
     Object.entries(this.attrs).forEach(([k, v]) => {
       if (!(typeof v === `object` && v.constructor.name === `TNative`))
         result[k] = v
@@ -145,4 +146,3 @@ export abstract class TInterpolatable<Type>  extends TBase<Type> implements Inte
   abstract interpolate(other: TA, ratio: number): TA
 }
 
-export type TypeofTA = new (...args: any[]) => TA

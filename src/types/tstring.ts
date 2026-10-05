@@ -1,5 +1,5 @@
 import { RTE } from "../runtime_error.js"
-import { AnimationStyle, TA, TInterpolatable, TypeofTA } from "./_base.js"
+import { AnimationStyle, TA, TInterpolatable } from "./_base.js"
 import { TBool } from "./tbool.js"
 import { TList } from "../types.js"
 import { TNumber } from "./tnumber.js"
@@ -19,15 +19,18 @@ export class TString extends TInterpolatable<string> {
     throw new RTE(`Cannot concatenate a ${(other as TA).constructor.name} to the string "${this.value}"`)
   }
 
-  opTimes(other: TA)   { 
-    return this.checkAndApply(other, TNumber, `*`, (a, b) => a.repeat(b), TString) 
+  // "ab" * 3 is "ababab"
+  opTimes(other: TA) {
+    if (other instanceof TNumber)
+      return new TString(this.value.repeat(other.value))
+    throw new RTE(`"*" needs a number after a string, but this is ${other.nameForErrors()}`)
   }
 
-  opDivide(other: TA) { 
-    return this.checkAndApply(other, TString, `/`, (a, b) => 
-      a.split(b).map((part) => new TString(part))
-    , 
-    TList) 
+  // "a,b" / "," is the list ["a", "b"]
+  opDivide(other: TA) {
+    if (other instanceof TString)
+      return new TList(this.value.split(other.value).map(part => new TString(part)))
+    throw new RTE(`"/" needs a string after a string, but this is ${other.nameForErrors()}`)
   }
 
   opEqual_to(other: TA) {
@@ -56,20 +59,6 @@ export class TString extends TInterpolatable<string> {
 
   handle_attr_length() {
     return new TNumber(this.value.length)
-  }
-
-  checkAndApply(
-    other: TA, 
-    otherType: TypeofTA, 
-    op: string, 
-    opFn: (a: string, b:any) => any, 
-    resultType: TypeofTA
-  ) {
-    if (other instanceof otherType)
-      return new resultType(opFn(this.value, other.value))
-    throw new RTE(
-      `Cannot execute "${this.value} ${op} ${(<TA>other).typeName}"`
-    )
   }
 
   checkAndApplyBool(other: TA, op: string, opFn: (a:string, b:string) => boolean) {

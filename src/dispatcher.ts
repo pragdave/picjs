@@ -14,6 +14,7 @@ import { AnimatorBase } from "./animators/_base.js"
 import { AnimationRunner } from "./animation_runner.js"
 import * as TLE from "./timeline/tlentries.js"
 import * as AST from "./ast.js"
+import type { TA } from "./types.js"
 
 export interface LayoutPlacement {
   shape: SBase
@@ -261,15 +262,15 @@ export class Dispatcher {
     return this.timeline.positionChangesFor(shape)
   }
 
-  updateOtherGeometry(shape: SBase, attr_name: string, attr_value: any) {
+  updateOtherGeometry(shape: SBase, attr_name: string, attr_value: TA) {
     this.timeline.updateOtherGeometry(shape, attr_name, attr_value)
   }
 
-  updateShapeStyle(shape: SBase, attr_name: string, attr_value: any) {
+  updateShapeStyle(shape: SBase, attr_name: string, attr_value: TA) {
     this.timeline.updateShapeStyle(shape, attr_name, attr_value)
   }
 
-  updateShapeStyleAt(time: number, shape: SBase, attr_name: string, attr_value: any) {
+  updateShapeStyleAt(time: number, shape: SBase, attr_name: string, attr_value: TA) {
     this.timeline.updateShapeStyleAt(time, shape, attr_name, attr_value)
   }
 

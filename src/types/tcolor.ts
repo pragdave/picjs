@@ -7,6 +7,7 @@ import { AnimationStyle, TA, TInterpolatable } from "./_base.js"
 import { TBool } from "./tbool.js"
 import { TNative } from "./tnative.js"
 import { Palette } from "../palette.js"
+import { numberArgument } from "./arguments.js"
 
 const toOklch = converter('oklch')
 const toRgb   = converter('rgb')
@@ -109,17 +110,17 @@ export class TColor extends TInterpolatable<Color> {
   addNativeFunctions() {
     this.attrs.lighten = new TNative(`lighten`, [`ratio`],
       `return a lighter version of this color (ratio is 0 to 1)`,
-      (_: any, ratio: TA) => new TColor(adjustL(this.value,  ratio.toNative())))
+      (_, ratio) => new TColor(adjustL(this.value,  numberArgument(`lighten`, `ratio`, ratio))))
 
     this.attrs.darken = new TNative(`darken`, [`ratio`],
       `return a darker version of this color (ratio is 0 to 1)`,
-      (_: any, ratio: TA) => new TColor(adjustL(this.value, -ratio.toNative())))
+      (_, ratio) => new TColor(adjustL(this.value, -numberArgument(`darken`, `ratio`, ratio))))
 
     this.attrs.brighten = new TNative(`brighten`, [`ratio`],
       `add white to this color (ratio is 0 to 1)`,
-      (_: any, ratio: TA) => {
+      (_, ratio) => {
         const rgb = toRgb(this.value) as Rgb
-        const amt = ratio.toNative()
+        const amt = numberArgument(`brighten`, `ratio`, ratio)
         return new TColor({
           mode: 'rgb',
           r: clamp01((rgb.r ?? 0) + amt),
@@ -131,30 +132,30 @@ export class TColor extends TInterpolatable<Color> {
 
     this.attrs.desaturate = new TNative(`desaturate`, [`amount`],
       `reduce chroma (amount is 0 to 1, with 1 producing grayscale)`,
-      (_: any, ratio: TA) => {
+      (_, amount) => {
         const ok = oklchOf(this.value)
-        return new TColor(clampRgb({ ...ok, c: ok.c * (1 - ratio.toNative()) })!)
+        return new TColor(clampRgb({ ...ok, c: ok.c * (1 - numberArgument(`desaturate`, `amount`, amount)) })!)
       })
 
     this.attrs.saturate = new TNative(`saturate`, [`amount`],
       `increase chroma (amount is 0 to 1)`,
-      (_: any, ratio: TA) => {
+      (_, amount) => {
         const ok = oklchOf(this.value)
-        return new TColor(clampRgb({ ...ok, c: ok.c + ratio.toNative() * 0.4 })!)
+        return new TColor(clampRgb({ ...ok, c: ok.c + numberArgument(`saturate`, `amount`, amount) * 0.4 })!)
       })
 
     this.attrs.grayscale = new TNative(`grayscale`, [],
       `convert this color to grayscale`,
-      (_: any) => {
+      () => {
         const ok = oklchOf(this.value)
         return new TColor(clampRgb({ ...ok, c: 0 })!)
       })
 
     this.attrs.spin = new TNative(`spin`, [`angle`],
       `rotate the hue by the given angle in oklch space (−360 to 360)`,
-      (_: any, angle: TA) => {
+      (_, angle) => {
         const ok = oklchOf(this.value)
-        const h = ((ok.h ?? 0) + angle.toNative() + 360) % 360
+        const h = ((ok.h ?? 0) + numberArgument(`spin`, `angle`, angle) + 360) % 360
         return new TColor(clampRgb({ ...ok, h })!)
       })
   }

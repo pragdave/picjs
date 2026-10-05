@@ -2,6 +2,7 @@ import { XY } from "../position.js"
 import { Timeline } from "../timeline.js"
 import { SBase } from "../shapes.js"
 import { AnimatorBase } from "../animators/_base.js"
+import type { TA } from "../types.js"
 
 export const BigNumber = 0x40000000
 
@@ -69,7 +70,7 @@ export class UpdateShapeNoAnimation extends TLEntry {
     shape: SBase, 
     start: number, 
     public attr_name: string, 
-    public attr_value: any
+    public attr_value: TA
   ) {
     super(shape, start)
   }

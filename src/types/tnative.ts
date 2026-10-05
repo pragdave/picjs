@@ -2,7 +2,7 @@ import { Interpreter } from "../interpreter.js"
 import { RTE } from "../runtime_error.js"
 import { AnimationStyle, TA, TBase } from "./_base.js"
 
-type NativeCallback = (a: Interpreter, ...b: any[]) => TA
+type NativeCallback = (interpreter: Interpreter, ...args: TA[]) => TA
 
 export class TNative extends TBase<NativeCallback> {
     minParams = 0

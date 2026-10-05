@@ -67,7 +67,7 @@ export class TPosition extends TInterpolatable<XY> {
     return new TNumber(([ this.value.x, this.value.y])[index])
   }
 
-  interpolate(other: TA, ratio: number) {
+  interpolate(other: TPosition, ratio: number) {
     const tx = this.value.x, ty = this.value.y,
       ox = other.value.x, oy = other.value.y
 
@@ -88,13 +88,11 @@ export class TPosition extends TInterpolatable<XY> {
   get x() { return this.value.x }
   get y() { return this.value.y }
 
-  setAtAttr(name: string, value: any) {
-    if (name === `x`) {
-      this.value.x = (value instanceof TNumber) ? value.value : value.toNative()
-      return this
-    }
-    if (name === `y`) {
-      this.value.y = (value instanceof TNumber) ? value.value : value.toNative()
+  setAtAttr(name: string, value: TA) {
+    if (name === `x` || name === `y`) {
+      if (!(value instanceof TNumber))
+        throw new RTE(`A position's ${name} must be a number, but this is ${value.nameForErrors()}`)
+      this.value[name] = value.value
       return this
     }
     return super.setAtAttr(name, value)
@@ -118,19 +116,20 @@ export class TPosition extends TInterpolatable<XY> {
     return this.applyXY(other.x, other.y, op)
   }
 
-  applyListOp(other: TA, op: string) {
+  applyListOp(other: TList, op: string) {
     if (other.value.length !== 2) {
-      throw new Error(`only 2-element lists can be combined with positions\n` +
-      `\t${this.value}\nand\n\t${other}\nbecause they are different lengths`)
+      throw new RTE(`A position can only be combined with a list of two numbers, ` +
+                    `but this list has ${other.value.length}`)
     }
-    const [ x, y ] = other.toNative()
-    return this.applyXY(x, y, op)
+    const [ x, y ] = other.value
+    if (!(x instanceof TNumber) || !(y instanceof TNumber))
+      throw new RTE(`A position can only be combined with a list of two numbers`)
+    return this.applyXY(x.value, y.value, op)
   }
 
 
-  applyScalarOp(other: TA, op: string) {
-    const val = other.toNative()
-    return this.applyXY(val, val, op)
+  applyScalarOp(other: TNumber, op: string) {
+    return this.applyXY(other.value, other.value, op)
   }
 
   applyXY(x: number, y: number, op: string) {

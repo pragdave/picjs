@@ -4,6 +4,7 @@ import { Dispatcher } from "../dispatcher.js"
 import { LineLike } from "./line_like.js"
 import { SPolyline } from "./spolyline.js"
 import { XY } from "../position.js"
+import type { TA } from "../types.js"
 
 // Groups use LOCAL COORDINATES: each child stores its position relative to
 // the group's anchor point (0,0 in local space).
@@ -134,7 +135,7 @@ export class SGroup extends SBase {
   }
 
   // Override to propagate opacity to children (rotation handled by SVG transform)
-  setAnimatableAttr(attr: string, newValue: any) {
+  setAnimatableAttr(attr: string, newValue: TA) {
     super.setAnimatableAttr(attr, newValue)
     if (attr === `opacity`) {
       const raw = newValue.toNative()
