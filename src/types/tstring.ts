@@ -1,14 +1,13 @@
 import { RTE } from "../runtime_error.js"
-import { AnimationStyle, TBase, TA, TypeofTA } from "./_base.js"
+import { AnimationStyle, TA, TInterpolatable, TypeofTA } from "./_base.js"
 import { TBool } from "./tbool.js"
 import { TList } from "../types.js"
 import { TNumber } from "./tnumber.js"
 
-export class TString extends TBase<string> {
+export class TString extends TInterpolatable<string> {
 
   constructor(value: string) {
     super(value, AnimationStyle.crossfade)
-    this.isInterpolatable = true
   }
 
   opPlus(other: TA)   { 
@@ -54,11 +53,6 @@ export class TString extends TBase<string> {
   opGreater_than_than_or_equal_to(other: TA) {
     return this.checkAndApplyBool(other, `>=`, (a, b) => a >= b) 
   }
-
-  opNegate() {
-    return new TNumber(-this.value)
-  }
-
 
   handle_attr_length() {
     return new TNumber(this.value.length)

@@ -15,9 +15,14 @@ export enum AnimationStyle  {
 
 export type TA = TBase<any>
 
+// The methods that implement the binary operators
+export type BinaryOperatorMethod =
+  `opPlus` | `opMinus` | `opTimes` | `opDivide` | `opModulo` | `opPow` |
+  `opEqual_to` | `opNot_equal_to` | `opLess_than` | `opLess_than_or_equal_to` |
+  `opGreater_than_than` | `opGreater_than_than_or_equal_to`
+
 export class TBase<ValueType, > {
   attrs: Record<string, any>
-  isInterpolatable = false
   typeName = this.constructor.name
 
 
@@ -30,28 +35,26 @@ export class TBase<ValueType, > {
     return this.animationStyle // none or continuous or crossfade
   }
 
-  // A bunch of predefined callbacks from the interpreter...
-  
-  opUnaryPlus()  { this.operatorNotSupported(`(unary) +`) }
-  opUnaryMinus() { this.operatorNotSupported(`(unary) -`) }
+  // The operators. A type that supports one overrides its method.
 
-  opPlus(_: TA)      { this.operatorNotSupported(`+`) }
-  opMinus(_: TA)     { this.operatorNotSupported(`-`) }
-  opTimes(_: TA)     { this.operatorNotSupported(`*`) }
-  opDivide(_: TA)    { this.operatorNotSupported(`/`) }
-  opModulo(_: TA)    { this.operatorNotSupported(`%`) }
-  opExp(_: TA)       { this.operatorNotSupported(`^`) }
-  opNegate(_: TA)    { this.operatorNotSupported(`- (negation)`) }
-  opNot()            { this.operatorNotSupported(`!`) }
-  isTrue()       { this.operatorNotSupported(`test if true`) }
+  opUnaryPlus(): TA  { return this.operatorNotSupported(`(unary) +`) }
+  opUnaryMinus(): TA { return this.operatorNotSupported(`(unary) -`) }
+  opNot(): TA        { return this.operatorNotSupported(`!`) }
+  isTrue(): boolean  { return this.operatorNotSupported(`test if true`) }
 
-  opEqual_to(_: TA)                      { this.operatorNotSupported(`==`) }
-  opNot_equal_to(_: TA)                  { this.operatorNotSupported(`!=`) }
-  opLess_than(_: TA)                     { this.operatorNotSupported(`<`) }
-  opLess_than_or_equal_to(_: TA)         { this.operatorNotSupported(`<=`) }
-  opGreater_than_than(_: TA)             { this.operatorNotSupported(`>`) }
-  opGreater_than_than_or_equal_to(_: TA) { this.operatorNotSupported(`>=`) }
-  opIndex(_: TA)                         { this.operatorNotSupported(`[ ] (indexing)`) }
+  opPlus(_: TA): TA   { return this.operatorNotSupported(`+`) }
+  opMinus(_: TA): TA  { return this.operatorNotSupported(`-`) }
+  opTimes(_: TA): TA  { return this.operatorNotSupported(`*`) }
+  opDivide(_: TA): TA { return this.operatorNotSupported(`/`) }
+  opModulo(_: TA): TA { return this.operatorNotSupported(`%`) }
+  opPow(_: TA): TA    { return this.operatorNotSupported(`^`) }
+
+  opEqual_to(_: TA): TA                      { return this.operatorNotSupported(`==`) }
+  opNot_equal_to(_: TA): TA                  { return this.operatorNotSupported(`!=`) }
+  opLess_than(_: TA): TA                     { return this.operatorNotSupported(`<`) }
+  opLess_than_or_equal_to(_: TA): TA         { return this.operatorNotSupported(`<=`) }
+  opGreater_than_than(_: TA): TA             { return this.operatorNotSupported(`>`) }
+  opGreater_than_than_or_equal_to(_: TA): TA { return this.operatorNotSupported(`>=`) }
 
 
   getUserDefinedAttribute(name: string) {
@@ -90,22 +93,19 @@ export class TBase<ValueType, > {
     return {}
   }
 
-  // Index signature for dynamic attribute dispatch: this[`handle_attr_${name}`]
-  // TypeScript lacks string-pattern index types, so `any` is required here
-  [name: string]: any
 
-  handleBuiltInAttribute(name: string) {
-    const handlerName = `handle_attr_` + name
-
-    if (!(handlerName in this))
-      throw new RTE(`Unknown attribute "${name}" for ${this}`)
-
-    const handler = this[handlerName]
-
+  // A built-in attribute comes from a method named handle_attr_<name>. Its
+  // name is only known at run time, so this looks it up by name.
+  handleBuiltInAttribute(name: string): TA {
+    const handler = (this as unknown as Record<string, unknown>)[`handle_attr_${name}`]
     if (typeof handler !== `function`)
-      throw new RTE(`Unknown attribute "${name}" for ${this}`)
+      throw new RTE(`Unknown attribute "${name}" for ${this.nameForErrors()}`)
+    return handler.call(this)
+  }
 
-    return handler.apply(this)
+  // How this value is described in error messages
+  nameForErrors(): string {
+    return String(this.toNative())
   }
 
   toNative(): any {
@@ -117,7 +117,7 @@ export class TBase<ValueType, > {
     return this.toNative().toString()
   }
 
-  operatorNotSupported(op: string) {
+  operatorNotSupported(op: string): never {
     throw new RTE(
       `${this.constructor.name} (${this.toNative()}) does not implement "${op}"`
     )

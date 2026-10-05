@@ -1,6 +1,8 @@
 import { newDispatcher } from "../helpers/eval.js"
 import { parseToAST, ParseStatus } from "../../src/parser.js"
 import { parse } from "../../src/peg_parser/jp.js"
+import { SBase, SLine } from "../../src/shapes.js"
+import { TPosition } from "../../src/types.js"
 
 function runProgram(src: string) {
   const parseResult = parseToAST(parse, src, `Start`, false)
@@ -19,7 +21,7 @@ function valueAfter(src: string, v = `v`) {
 function xOf(src: string, v: string, t = 0) {
   const dispatcher = runProgram(src)
   dispatcher.applyTimelineUpTo(t)
-  return dispatcher.getCurrentBinding().get_variable_value(v).x
+  return (dispatcher.getCurrentBinding().get_variable_value(v) as SBase).anchor.x
 }
 
 const ThreeBoxes = `
@@ -53,7 +55,7 @@ describe(`shape references`, () => {
   })
 
   it(`works with attributes and arithmetic`, () => {
-    const p = valueAfter(`${ThreeBoxes}  v = last box.n + (0, 1)`)
+    const p = valueAfter(`${ThreeBoxes}  v = last box.n + (0, 1)`) as TPosition
     expect([p.x, p.y]).toEqual([3, -0.375 + 1])
   })
 
@@ -146,7 +148,7 @@ describe(`shape references`, () => {
         c = Box at (40, 0)
       `)
       dispatcher.applyTimelineUpTo(0)
-      const line = dispatcher.getCurrentBinding().get_variable_value(`l`)
+      const line = dispatcher.getCurrentBinding().get_variable_value(`l`) as SLine
       const xs = [line.start.x, line.end.x].sort((p: number, q: number) => p - q)
       expect(xs[0]).toBeGreaterThan(0)
       expect(xs[1]).toBeLessThan(4)

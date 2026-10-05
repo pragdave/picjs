@@ -5,8 +5,7 @@ import { Cardinals, CardinalFactorsFromCenter, XY } from "../position.js"
 export class SPolyline extends LineLike {
   override shapeName = "SPolyline"
 
-  // Thunk versions for dynamic evaluation
-  get _start()      { return this.hidden._start }
+  // The `then` clauses, as syntax trees evaluated by the geometry
   get _waypoints()  { return this.hidden._waypoints }  // Array of AST nodes
 
   // Resolved coordinates (filled by geometry)

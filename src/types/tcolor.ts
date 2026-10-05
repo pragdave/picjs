@@ -3,7 +3,7 @@ import {
 } from 'culori'
 import type { Color, Oklch, Rgb } from 'culori'
 import { RTE } from "../runtime_error.js"
-import { AnimationStyle, TBase, TA } from "./_base.js"
+import { AnimationStyle, TA, TInterpolatable } from "./_base.js"
 import { TBool } from "./tbool.js"
 import { TNative } from "./tnative.js"
 import { Palette } from "../palette.js"
@@ -34,7 +34,7 @@ function colorToString(color: Color): string {
   return (rgb.alpha !== undefined && rgb.alpha < 1) ? formatHex8(rgb) : formatHex(rgb)
 }
 
-export class TColor extends TBase<Color> {
+export class TColor extends TInterpolatable<Color> {
 
   paletteSlot?: string
 
@@ -104,7 +104,6 @@ export class TColor extends TBase<Color> {
   constructor(color: Color) {
     super(color, AnimationStyle.continuous)
     this.addNativeFunctions()
-    this.isInterpolatable = true
   }
 
   addNativeFunctions() {

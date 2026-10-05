@@ -91,6 +91,8 @@ describe(`lists`, () => {
       [`past the end`,         `[1, 2][5]`,    /index 5 is outside a list of 2 items/],
       [`past the start`,       `[1, 2][-3]`,   /index -3 is outside a list of 2 items/],
       [`with a non-number`,    `[1, 2][~red]`, /index must be a number.*#ff0000/],
+      [`arithmetic with something else`,  `[1, 2] + ~red`,      /"\+" needs a number or another list.*#ff0000/],
+      [`arithmetic on unequal lists`,     `[1, 2] + [1, 2, 3]`, /"\+" needs lists of the same length.*2 and 3/],
     ])(`%s is a runtime error`, (_name, src, message) => {
       expect(() => valueOf(src)).toThrow(RTE)
       expect(() => valueOf(src)).toThrow(message)

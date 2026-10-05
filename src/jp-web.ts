@@ -4,7 +4,6 @@ import { parse as pegParse } from "./peg_parser/jp.js"
 import { Dispatcher } from "./dispatcher.js"
 import { nullLogger, calculateBoundingBox, unionBounds, type BoundingBox } from "./render-utils.js"
 import { Location } from "./location.js"
-import { Binding } from "./binding.js"
 import { setTheme, getThemeName, resetTheme, applyPaletteToTheme, getDarkThemeColor } from "./defaults.js"
 import { Palette } from "./palette.js"
 import { computeSlotColors, generateCSS } from "./palette-css.js"
@@ -233,9 +232,9 @@ function renderAny(v: any, depth = 0): HTMLElement {
   return el(`span.dir-value`, v?.toString() ?? `null`)
 }
 
-function tableOfBindings(binding: Binding, level: number): HTMLElement | [] {
+function tableOfBindings(table: Record<string, unknown>, level: number): HTMLElement | [] {
   if (level > 2) return []
-  const items = Object.entries(binding).map(([k, v]) =>
+  const items = Object.entries(table).map(([k, v]) =>
     el(`li.dir-item`, [el(`span.dir-key`, k + `:`), renderAny(v, level + 1)])
   )
   return el(`ul.dir-list`, items)

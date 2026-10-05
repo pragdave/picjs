@@ -1,33 +1,27 @@
-/*
- * An iterable type must implement the following interface:
- *
- * - `at[i]`  : return the value at index `i`. 
- * - `first_index()` : return the index (a number) of the first element
- * - `last_index()`  : and the last
- * - `default_step()` : how much to add to the index when iterating through
- *
- * Given that, a type may mix in this module to get
- *
- *  - first() : return the first value  (`at(first_index()]`
- *  - last()
- *  - each : for i = first_index; i<= last_index; i+= default_step  { callback(at[i]) }
- *           (can also supply a step, overriding default)
- *  - random() : a random value picked from the iterable
- *  - map()
- */
+// A mixin that gives a collection first(), last(), each() and map(). Each
+// iterates from first_index() to last_index() in steps of default_step(), or
+// of a step it's given; a step below 1 interpolates, from at(0) to at(1).
 
 import { RTE } from "../runtime_error.js"
 import { TList } from "./tlist.js"
 import { TNative } from "./tnative.js"
 import { TNumber } from "./tnumber.js"
-import { TA } from "../types.js"
+import { TA, TBase } from "../types.js"
 import { Interpreter } from "../interpreter.js"
 
 const EachMsg = `.each() and map() take a optional step value and a required callback function`
 
 type IterableCallback = (thisBeingIterated:TA, step: number) => void
 
-export function addToAttrs(host: TA) {
+// What a collection provides to mix this in
+export interface IterableHost extends TBase<unknown> {
+  at(index: number): TA
+  first_index(): number
+  last_index(): number
+  default_step(): number
+}
+
+export function addToAttrs(host: IterableHost) {
   host.attrs.first = new TNative(`first`, [],
     `return the first item in this collection or range`,
 
@@ -43,7 +37,7 @@ export function addToAttrs(host: TA) {
     })
 
 
-  function iterate(host: TA, _interpreter: Interpreter, requestedStep: TNumber, callback: IterableCallback) {
+  function iterate(host: IterableHost, _interpreter: Interpreter, requestedStep: TNumber, callback: IterableCallback) {
     let step
     if (requestedStep) {
       if (requestedStep instanceof TNumber) {

@@ -19,10 +19,6 @@ export class SArc extends LineLike {
   handle_attr_height()    { return new TNumber(this.height) }
   handle_attr_stroke()    { return new TColor(this.stroke) }
 
-  // these two are the thunk versions, for dynamic evaluation
-  get _start()          { return this.hidden._start }
-  get _end()            { return this.hidden._end }
-
   // and these are filled in with actual coordinates by the geometry
   get start()          { return this.params.start }
   set start(val)       { this.params.start = val }

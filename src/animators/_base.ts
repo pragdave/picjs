@@ -197,6 +197,8 @@ export class RotateAnimator extends AnimatorBase {
 
   start() {
     const start = this.shape.getAnimatableAttr(`rotation`)
+    if (!(start instanceof TNumber))
+      throw new Error(`internal error: a ${this.shape.shapeName}'s rotation is not a number`)
     const end   = new TNumber(start.value + this.angle.value)
 
     this.setupRange(start, end)
@@ -247,8 +249,9 @@ class SetAttrAnimator extends AnimatorBase {
 
   start() {
     const start = this.shape.getAnimatableAttr(this.attrName)
-    const end   = this.value
-    this.setupRange(start, end)
+    if (!(start instanceof TInterpolatable))
+      throw new RTE(`You cannot animate ${this.shape.shapeName}.${this.attrName} smoothly`)
+    this.setupRange(start, this.value)
   }
 
   _step<T>(nextValue: TInterpolatable<T>) {

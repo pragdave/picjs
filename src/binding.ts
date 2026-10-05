@@ -194,7 +194,8 @@ export class Binding {
   }
 
 
-  dumpAsTable() {
+  // For showing a backtrace: the variables here, and how deeply this scope is nested
+  dumpAsTable(): Record<string, unknown> {
     return { "$level$": this.level, ...this.bindings }
   }
 

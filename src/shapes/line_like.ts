@@ -1,6 +1,7 @@
 import { SBase }from "./_base.js"
 import { TNumber } from "../types.js"
 import { XY } from "../position.js"
+import type * as AST from "../ast.js"
 
 export interface PathPoint {
   x: number
@@ -15,6 +16,11 @@ export abstract class LineLike extends SBase {
   predecessorShape?: SBase
   successorShape?:   SBase
   _layoutDirection?: XY
+
+  // The `from` and `to` clauses, as syntax trees evaluated by the geometry.
+  // Without them, a line runs from the shape before it to the one after.
+  get _start(): AST.Node | undefined { return this.hidden._start as AST.Node | undefined }
+  get _end(): AST.Node | undefined   { return this.hidden._end as AST.Node | undefined }
 
   // Subclasses must implement start/end accessors for geometry positioning
   abstract get start(): XY

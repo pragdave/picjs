@@ -1,5 +1,5 @@
 import { Interpreter } from "../interpreter.js"
-import { AnimationStyle, TA, TInterpolatable } from "./_base.js"
+import { AnimationStyle, TA, TInterpolatable, BinaryOperatorMethod } from "./_base.js"
 import { TBool } from "./tbool.js"
 import { TNative } from "./tnative.js"
 
@@ -16,7 +16,6 @@ export class TNumber extends TInterpolatable<number> {
   constructor(value: number) {
     super(value, AnimationStyle.continuous)
     this.addNativeFunctions()
-    this.isInterpolatable = true
   }
 
   addNativeFunctions() {
@@ -79,15 +78,13 @@ export class TNumber extends TInterpolatable<number> {
     return this.checkAndApplyBool(other, `>=`, (a:number, b:number) => a >= b) 
   }
 
-  opNegate() {
-    return new TNumber(-this.value)
-  }
-
-  checkAndApplyTrans(other: TA, funcName: string,  op: string, opFn: OpFn) {
+  // For an operator that works either way round (+ and *): if the other value
+  // isn't a number, it can work it out (2 * [1, 2] is [1, 2] * 2)
+  checkAndApplyTrans(other: TA, funcName: BinaryOperatorMethod,  op: string, opFn: OpFn): TA {
     return this.checkAndApply(other, op, opFn, /* transitive */ funcName)
   }
 
-  checkAndApply(other: TA, op: string, opFn: OpFn, transitive?: string) {
+  checkAndApply(other: TA, op: string, opFn: OpFn, transitive?: BinaryOperatorMethod): TA {
     if (other instanceof TNumber)
       return new TNumber(opFn(this.value, other.value))
     if (transitive)

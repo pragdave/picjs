@@ -1,5 +1,5 @@
 import { RTE } from "../runtime_error.js"
-import { AnimationStyle, TBase, TA } from "./_base.js"
+import { AnimationStyle, TInterpolatable, TA } from "./_base.js"
 import { TList } from "./tlist.js"
 import { TNumber } from "./tnumber.js"
 import { XY } from "../position.js"
@@ -18,7 +18,7 @@ function notSupported(op: string) {
   throw new RTE(`Operator ${op} is not supported by positions`)
 }
 
-export class TPosition extends TBase<XY> {
+export class TPosition extends TInterpolatable<XY> {
 
   constructor(pos: XY | TNumber | number, y?: TNumber | number);
   constructor(x: XY | TNumber | number, y: TNumber | number) {
@@ -32,7 +32,6 @@ export class TPosition extends TBase<XY> {
     else
       throw new Error(`bad parameter to Position: ${JSON.stringify(x)}`)
 
-    this.isInterpolatable = true
   }
 
   opPlus(other: TA)   { return this.doOp(other, `plus`) }

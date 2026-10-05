@@ -1,6 +1,6 @@
 import { RTE } from "../runtime_error.js"
 import { Interpreter } from "../interpreter.js"
-import { AnimationStyle, TBase, TA } from "./_base.js"
+import { AnimationStyle, TBase, TA, BinaryOperatorMethod } from "./_base.js"
 import { TNumber } from "./tnumber.js"
 import { TNative } from "./tnative.js"
 import { TString } from "../types.js"
@@ -32,11 +32,11 @@ export class TList extends TBase<TA[]> {
     Iterable.addToAttrs(this)
   }
 
-  opPlus(other: TA)   { return this.doOp(other, `opPlus`) }
-  opMinus(other: TA)  { return this.doOp(other, `opMinus`) }
-  opTimes(other: TA)  { return this.doOp(other, `opTimes`) }
-  opDivide(other: TA) { return this.doOp(other, `opDivide`) }
-  opPow(other: TA)    { return this.doOp(other, `opPow`) }
+  opPlus(other: TA)   { return this.doOp(other, `opPlus`, `+`) }
+  opMinus(other: TA)  { return this.doOp(other, `opMinus`, `-`) }
+  opTimes(other: TA)  { return this.doOp(other, `opTimes`, `*`) }
+  opDivide(other: TA) { return this.doOp(other, `opDivide`, `/`) }
+  opPow(other: TA)    { return this.doOp(other, `opPow`, `^`) }
 
 
   getAtIndex(offset: TA) {
@@ -88,28 +88,27 @@ export class TList extends TBase<TA[]> {
   }
   // helpers
 
-  doOp(other: TA, op: string) {
-    if (other instanceof TList) 
-      return this.applyListOp(other, op)
+  // Arithmetic is element by element, with another list of the same length,
+  // or with a number
+  doOp(other: TA, op: BinaryOperatorMethod, symbol: string) {
+    if (other instanceof TList)
+      return this.applyListOp(other, op, symbol)
     if (other instanceof TNumber)
       return this.applyScalarOp(other, op)
 
-    throw `incompatible types: ${this.value} ${op} ${other.value}`
+    throw new RTE(`"${symbol}" needs a number or another list with a list, but this is ${other?.toNative?.() ?? other}`)
   }
 
-  applyListOp(other: TA, op: string) {
+  applyListOp(other: TList, op: BinaryOperatorMethod, symbol: string) {
     if (other.value.length !== this.value.length) {
-      throw new Error(`cannot perform operation between\n` +
-                      `\t${this.value}\nand\n\t${other}\nbecause they are different lengths`) 
+      throw new RTE(`"${symbol}" needs lists of the same length, but they have ` +
+                    `${this.value.length} and ${other.value.length} items`)
     }
-    const result = this.value.map((v, i) => v[op](other.value[i]))
-    return new TList(result)
+    return new TList(this.value.map((v, i) => v[op](other.value[i])))
   }
 
-
-  applyScalarOp(other: TA, op: string) {
-    const result = this.value.map(v => v[op](other))
-    return new TList(result)
+  applyScalarOp(other: TNumber, op: BinaryOperatorMethod) {
+    return new TList(this.value.map(v => v[op](other)))
   }
 
   // Negative indexes count back from the end

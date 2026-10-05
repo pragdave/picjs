@@ -1,5 +1,5 @@
 export { TBase } from "./types/_base.js"
-export type { TA } from "./types/_base.js"
+export type { TA, BinaryOperatorMethod } from "./types/_base.js"
 
 export { TBool } from "./types/tbool.js"
 export { TColor } from "./types/tcolor.js"

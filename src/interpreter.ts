@@ -10,7 +10,9 @@ import  * as AST from "./ast.js"
 
 import {
   type TA,
+  type BinaryOperatorMethod,
   TBase,
+  TInterpolatable,
   TBool,
   TColor,
   TFont,
@@ -30,7 +32,7 @@ import { isKnownAttribute, acceptedAttributesFor } from "./shapes/attributes.js"
 import { RegenerateSource, ordinal } from "./regenerate_source.js"
 
 
-const BinOps: { [op: string]: string } = {
+const BinOps: { [op: string]: BinaryOperatorMethod } = {
   "+": `opPlus`,
   "-": `opMinus`,
   "*": `opTimes`,
@@ -47,7 +49,7 @@ const BinOps: { [op: string]: string } = {
 }
 
 function undefinedbinop(op: string): never   {
-  throw `undefined operator ` + op
+  throw new Error(`internal error: undefined operator ${op}`)
 }
 
 
@@ -83,6 +85,22 @@ export class Interpreter extends Visitor{
 
   getCurrentBinding() {
     return this.binding
+  }
+
+  // Interpreters nest (re-evaluating a shape's arguments runs one), so an
+  // error ripples up through each, and each adds a frame to its backtrace
+  override start(tree: AST.Node) {
+    try {
+      return super.start(tree)
+    }
+    catch (e) {
+      const loc = this.lastLocation
+      if ((e instanceof RTE) && loc) {
+        e.context ??= []
+        e.context.push({ loc, interpreter: this })
+      }
+      throw e
+    }
   }
 
   VisitArrayExpression(node: AST.ArrayExpression) {
@@ -132,8 +150,6 @@ export class Interpreter extends Visitor{
     const lv = this.accept(node.left)
     const rv = this.accept(node.right)
     const fn = BinOps[op] || undefinedbinop(op)
-    if (typeof lv[fn] !== `function`)
-      throw new Error(`internal error: unknown binop "${fn}" on ${JSON.stringify(lv)}`)
     return lv[fn](rv)
   }
 
@@ -547,7 +563,7 @@ export class Interpreter extends Visitor{
     const end   = this.accept(node.end)
 
     if (start.isSameTypeAs(end)) {
-      if (start.isInterpolatable) {
+      if (start instanceof TInterpolatable) {
         return new TRange(start, end)
       }
       throw new RTE(`the limits of a range must be interpolatable (numbers, colors, ...)`)

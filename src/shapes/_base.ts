@@ -149,10 +149,6 @@ export class SBase extends TBase<null> {
     this.setupParams(newArgs)
   }
 
-  valueOfAttr(attribute: string) {
-    return this.valueOfTree(this[attribute])
-  }
-
   valueOfTree(tree: AST.Node) {
     const prev = this.dispatcher.currentEvaluatingShape
     this.dispatcher.currentEvaluatingShape = this
@@ -496,15 +492,9 @@ export class SBase extends TBase<null> {
   updateCrossFade(_ratio: number) {}
   finalizeCrossFade() {}
 
-  // Index signature for dynamic attribute dispatch: this[`handle_attr_${attr}`]
-  // TypeScript lacks string-pattern index types, so `any` is required here
-  [attr_name: string]: any
 
   getAnimatableAttr(attr: string) {
-    const attr_getter: () => any = this[`handle_attr_${attr}`]
-    if (attr_getter)
-      return attr_getter.call(this)
-    throw new RTE(`Unknown attribute "${attr}" for ${this.shapeName}`)
+    return this.handleBuiltInAttribute(attr)
   }
 
   setAnimatableAttr(attr: string, newValue: any) {
@@ -624,6 +614,12 @@ export class SBase extends TBase<null> {
 
   toNative() {
     return this
+  }
+
+  // a Box, an Arc
+  override nameForErrors() {
+    const name = this.shapeName.replace(/^S/, ``)
+    return `${/^[AEIOU]/.test(name) ? `an` : `a`} ${name}`
   }
 
   rememberRenderNeeded(moved = false) {

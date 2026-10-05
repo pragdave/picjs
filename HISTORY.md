@@ -9,8 +9,10 @@
   with `set`) having no visible effect; labels inside it now re-color to match
 * Fix the built library failing to render an empty diagram, or one that draws nothing
 * Report a bad `take`, calling something that isn't a function, a list index out of range or not a
-  number, and `move` given something other than a shape or one of its points (`move b.fill` was
-  accepted, and broke the animation), as errors that say what is wrong
+  number, arithmetic between a list and something other than a number or a list of the same
+  length, `^` on a value that doesn't support it, and `move` given something other than a shape or
+  one of its points (`move b.fill` was accepted, and broke the animation), as errors that say what
+  is wrong; an unknown attribute on a shape names the shape briefly ("for a Box")
 * `??` now shows shapes, colors and blocks as readable source
 
 ## 0.3.0

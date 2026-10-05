@@ -4,7 +4,7 @@ import { Renderer } from "./render.js"
 import { Timeline } from "./timeline.js"
 import { ShapeGraph } from "./shape_graph.js"
 import { WithConstraint } from "./shapes/_base.js"
-import { LineLike, SBase, SPolyline } from "./shapes.js"
+import { SArc, SBase, SLine, SPolyline } from "./shapes.js"
 import { SvgNode, serialize, IdGenerator } from "./svg-node.js"
 import { Location } from "./location.js"
 import { Binding } from "./binding.js"
@@ -326,7 +326,7 @@ export class Dispatcher {
     this.svgHolder.removeChild(element)
   }
     
-  positionLine(line: LineLike) {
+  positionLine(line: SLine | SArc) {
     this.geometry.positionLine(line)
   }
 

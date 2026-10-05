@@ -295,7 +295,7 @@ export class Geometry {
   // smooth or stepped, we instead always connect to one of n, e, w, or s,
   // the choice depending on the relative position of both ends.
 
-  positionLine(line: LineLike) {
+  positionLine(line: SLine | SArc) {
     const [start, end] = this.getLineStartEnd(line)
     line.start = start
     line.end = end
@@ -312,7 +312,7 @@ export class Geometry {
     let cropStart = false
 
     if (poly._start) {
-      startAsType = poly.valueOfAttr(`_start`)
+      startAsType = poly.valueOfTree(poly._start)
       if (startAsType instanceof SBase)
         this.dispatcher.recordDependency(poly, startAsType)
       ;[startXY, cropStart] = this.convertToPosition(startAsType)
@@ -434,7 +434,7 @@ export class Geometry {
     poly.setAnimatablePosition(cx, cy)
   }
 
-  getLineStartEnd(line: LineLike) {
+  getLineStartEnd(line: SLine | SArc) {
     let startAsType
     let endAsType, endAsXY
     let cropEnd = false
@@ -455,7 +455,7 @@ export class Geometry {
       }
     }
     else {
-      startAsType = line.valueOfAttr(`_start`)
+      startAsType = line.valueOfTree(line._start)
       if (startAsType instanceof SBase)
         this.dispatcher.recordDependency(line, startAsType)
     }
@@ -474,7 +474,7 @@ export class Geometry {
       }
     }
     else {
-      endAsType = line.valueOfAttr(`_end`)
+      endAsType = line.valueOfTree(line._end)
       if (endAsType instanceof SBase)
         this.dispatcher.recordDependency(line, endAsType)
       ;[endAsXY, cropEnd] = this.convertToPosition(endAsType)

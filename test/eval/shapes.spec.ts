@@ -2,7 +2,7 @@ import { valueOf, newDispatcher } from "../helpers/eval.js"
 import { TNumber, TPosition, TA } from "../../src/types.js"
 import { ParseStatus } from "../../src/parser.js"
 import { parseToMockAST } from "../helpers/ast.js"
-import { LineLike } from "../../src/shapes.js"
+import { SLine } from "../../src/shapes.js"
 
 function runProgram(src: string) {
   const parseResult = parseToMockAST(`Program`, src)
@@ -10,6 +10,12 @@ function runProgram(src: string) {
   const dispatcher = newDispatcher()
   dispatcher.start(parseResult.ast)
   return dispatcher
+}
+
+// The shapes drawn. Untyped, because the tests look at each kind of shape's
+// own members (a label's text, a line's start).
+function shapesOf(dispatcher: ReturnType<typeof runProgram>): any[] {
+  return dispatcher.shapes()
 }
 
 
@@ -79,19 +85,19 @@ describe(`shapes`, () => {
 describe(`dispatcher.shapes()`, () => {
   it(`returns one shape for Box`, () => {
     const d = runProgram(`Box`)
-    expect(d.shapes()).toHaveLength(1)
-    expect(d.shapes()[0].shapeName).toBe(`SBox`)
+    expect(shapesOf(d)).toHaveLength(1)
+    expect(shapesOf(d)[0].shapeName).toBe(`SBox`)
   })
 
   it(`returns shapes in order for Box and Line`, () => {
     const d = runProgram(`Box\nLine`)
-    const names = d.shapes().map((s: any) => s.shapeName)
+    const names = shapesOf(d).map((s: any) => s.shapeName)
     expect(names).toEqual([`SBox`, `SLine`])
   })
 
   it(`shapes have unique ids`, () => {
     const d = runProgram(`Box\nBox`)
-    const ids = d.shapes().map((s: any) => s.id)
+    const ids = shapesOf(d).map((s: any) => s.id)
     expect(new Set(ids).size).toBe(2)
   })
 })
@@ -99,10 +105,10 @@ describe(`dispatcher.shapes()`, () => {
 describe(`connector positioning`, () => {
   it(`Box -> line starts at Box.e after re-positioning`, () => {
     const d = runProgram(`Box\n->`)
-    const [box, line] = d.shapes()
+    const [box, line] = shapesOf(d)
 
     // positionLine is called on every renderUpdatedOn; must not drift
-    d.positionLine(line as LineLike)
+    d.positionLine(line as SLine)
 
     expect((line as any).start.x).toBeCloseTo(box.e.x)
     expect((line as any).start.y).toBeCloseTo(box.e.y)
@@ -110,33 +116,33 @@ describe(`connector positioning`, () => {
 
   it(`Box -> re-positioning is stable across multiple calls`, () => {
     const d = runProgram(`Box\n->`)
-    const [box, line] = d.shapes()
+    const [box, line] = shapesOf(d)
 
-    d.positionLine(line as LineLike)
-    d.positionLine(line as LineLike)
-    d.positionLine(line as LineLike)
+    d.positionLine(line as SLine)
+    d.positionLine(line as SLine)
+    d.positionLine(line as SLine)
 
     expect((line as any).start.x).toBeCloseTo(box.e.x)
   })
 
   it(`Box -> line has predecessorShape set to Box`, () => {
     const d = runProgram(`Box\n->`)
-    const [box, line] = d.shapes()
+    const [box, line] = shapesOf(d)
     expect((line as any).predecessorShape).toBe(box)
   })
 
   it(`Box -> Box2 connector has both predecessor and successor set`, () => {
     const d = runProgram(`Box\n->\nBox`)
-    const [box1, line, box2] = d.shapes()
+    const [box1, line, box2] = shapesOf(d)
     expect((line as any).predecessorShape).toBe(box1)
     expect((line as any).successorShape).toBe(box2)
   })
 
   it(`Box -> Box2 line end is at Box2.w after re-positioning`, () => {
     const d = runProgram(`Box\n->\nBox`)
-    const [, line, box2] = d.shapes()
+    const [, line, box2] = shapesOf(d)
 
-    d.positionLine(line as LineLike)
+    d.positionLine(line as SLine)
 
     expect((line as any).end.x).toBeCloseTo(box2.w.x)
     expect((line as any).end.y).toBeCloseTo(box2.w.y)
@@ -146,7 +152,7 @@ describe(`connector positioning`, () => {
 describe(`dependency graph integration`, () => {
   it(`records a with-constraint dependency`, () => {
     const d = runProgram(`Box\nBox with .w at (100, 200)`)
-    const [box1] = d.shapes()
+    const [box1] = shapesOf(d)
     const graph = (d as any).shapeGraph.dependencyGraph
     // the second box's constraint target is a position literal, not a shape,
     // so nothing depends on the first
@@ -155,7 +161,7 @@ describe(`dependency graph integration`, () => {
 
   it(`plain Box Box creates no dependency`, () => {
     const d = runProgram(`Box\nBox`)
-    const [box1, box2] = d.shapes()
+    const [box1, box2] = shapesOf(d)
     const graph = (d as any).shapeGraph.dependencyGraph
     expect(graph.dependentsOf(box1)).toHaveLength(0)
     expect(graph.dependentsOf(box2)).toHaveLength(0)
@@ -163,14 +169,14 @@ describe(`dependency graph integration`, () => {
 
   it(`Box -> registers line as dependent of Box`, () => {
     const d = runProgram(`Box\n->`)
-    const [box, line] = d.shapes()
+    const [box, line] = shapesOf(d)
     const graph = (d as any).shapeGraph.dependencyGraph
     expect(graph.dependentsOf(box)).toContain(line)
   })
 
   it(`Box "Hello" label is initially positioned at box center`, () => {
     const d = runProgram(`Box "Hello"`)
-    const [box, label] = d.shapes()
+    const [box, label] = shapesOf(d)
     expect(label.anchor.x).toBeCloseTo(box.anchor.x)
     expect(label.anchor.y).toBeCloseTo(box.anchor.y)
     // Label should have non-NaN position
@@ -180,7 +186,7 @@ describe(`dependency graph integration`, () => {
 
   it(`Box "Hello" label has dimensions set`, () => {
     const d = runProgram(`Box "Hello"`)
-    const [, label] = d.shapes()
+    const [, label] = shapesOf(d)
     // In test env (no DOM), fallback dimensions are set
     expect(label.width).toBeGreaterThan(0)
     expect(label.height).toBeGreaterThan(0)
@@ -188,7 +194,7 @@ describe(`dependency graph integration`, () => {
 
   it(`Box "Hello" registers label as dependent of Box`, () => {
     const d = runProgram(`Box "Hello"`)
-    const shapes = d.shapes()
+    const shapes = shapesOf(d)
     expect(shapes).toHaveLength(2)
     const [box, label] = shapes
     expect(box.shapeName).toBe(`SBox`)
@@ -199,7 +205,7 @@ describe(`dependency graph integration`, () => {
 
   it(`Box "Hello" label stays at box center after width change`, () => {
     const d = runProgram(`Box "Hello"`)
-    const [box, label] = d.shapes()
+    const [box, label] = shapesOf(d)
 
     // Record initial positions — label should be at box center
     expect(label.anchor.x).toBeCloseTo(box.anchor.x)
@@ -219,7 +225,7 @@ describe(`dependency graph integration`, () => {
 describe(`multiple labels`, () => {
   it(`Box "A" "B" creates one label child with joined text`, () => {
     const d = runProgram(`Box "A" "B"`)
-    const shapes = d.shapes()
+    const shapes = shapesOf(d)
     expect(shapes).toHaveLength(2)  // Box + 1 combined label
     const [box, label] = shapes
     expect(box.shapeName).toBe(`SBox`)
@@ -229,20 +235,20 @@ describe(`multiple labels`, () => {
 
   it(`three labels are joined with double-newlines`, () => {
     const d = runProgram(`Box "X" "Y" "Z"`)
-    const [, label] = d.shapes()
+    const [, label] = shapesOf(d)
     expect(label.text).toBe(`X\n\nY\n\nZ`)
   })
 
   it(`multiple labels are centered on the parent`, () => {
     const d = runProgram(`Box "A" "B"`)
-    const [box, label] = d.shapes()
+    const [box, label] = shapesOf(d)
     expect(label.anchor.x).toBeCloseTo(box.anchor.x)
     expect(label.anchor.y).toBeCloseTo(box.anchor.y)
   })
 
   it(`single label still works as before`, () => {
     const d = runProgram(`Box "Hello"`)
-    const shapes = d.shapes()
+    const shapes = shapesOf(d)
     expect(shapes).toHaveLength(2)
     const [, label] = shapes
     expect(label.text).toBe(`Hello`)
@@ -250,14 +256,14 @@ describe(`multiple labels`, () => {
 
   it(`works on circles`, () => {
     const d = runProgram(`Circle "top" "bottom"`)
-    const [circle, label] = d.shapes()
+    const [circle, label] = shapesOf(d)
     expect(label.text).toBe(`top\n\nbottom`)
     expect(label.anchor.x).toBeCloseTo(circle.anchor.x)
   })
 
   it(`works with a with-constraint`, () => {
     const d = runProgram(`Box "A" "B" with .nw at (0, 0)`)
-    const [box, label] = d.shapes()
+    const [box, label] = shapesOf(d)
     expect(label.text).toBe(`A\n\nB`)
     // label center should still match box center
     expect(label.anchor.x).toBeCloseTo(box.anchor.x)
@@ -266,21 +272,21 @@ describe(`multiple labels`, () => {
 
   it(`labels interleaved with other attributes`, () => {
     const d = runProgram(`Box "first" width 5 "second"`)
-    const [box, label] = d.shapes()
+    const [box, label] = shapesOf(d)
     expect(box.width).toBe(5)
     expect(label.text).toBe(`first\n\nsecond`)
   })
 
   it(`labels with expressions`, () => {
     const d = runProgram(`$a = "hello"\n$b = "world"\nBox ($a) ($b)`)
-    const shapes = d.shapes()
+    const shapes = shapesOf(d)
     const label = shapes[shapes.length - 1]
     expect(label.text).toBe(`hello\n\nworld`)
   })
 
   it(`registers combined label as dependent of parent`, () => {
     const d = runProgram(`Box "A" "B"`)
-    const shapes = d.shapes()
+    const shapes = shapesOf(d)
     const [box, label] = shapes
     const graph = (d as any).shapeGraph.dependencyGraph
     expect(graph.dependentsOf(box)).toContain(label)
@@ -288,7 +294,7 @@ describe(`multiple labels`, () => {
 
   it(`does not create multiple label children`, () => {
     const d = runProgram(`Box "A" "B" "C"`)
-    const shapes = d.shapes()
+    const shapes = shapesOf(d)
     // Exactly 2 shapes: the box and one combined label
     expect(shapes).toHaveLength(2)
     expect(shapes[0].shapeName).toBe(`SBox`)
@@ -297,7 +303,7 @@ describe(`multiple labels`, () => {
 
   it(`does not interfere with line labels`, () => {
     const d = runProgram(`Line from (0,0) to (5,0) "above" above "below" below`)
-    const shapes = d.shapes()
+    const shapes = shapesOf(d)
     // Line + 2 separate line labels
     expect(shapes).toHaveLength(3)
     expect(shapes[1].shapeName).toBe(`SLabel`)
@@ -309,7 +315,7 @@ describe(`multiple labels`, () => {
 
   it(`combined label does not become lastShape`, () => {
     const d = runProgram(`Box "A" "B"\nBox`)
-    const shapes = d.shapes()
+    const shapes = shapesOf(d)
     // Box1, combined label, Box2
     expect(shapes).toHaveLength(3)
     const [box1, , box2] = shapes
@@ -319,7 +325,7 @@ describe(`multiple labels`, () => {
 
   it(`child label receives parent dimensions`, () => {
     const d = runProgram(`Box width 5 height 3 "hello"`)
-    const label = d.shapes()[1]
+    const label = shapesOf(d)[1]
     expect(label.params._parentWidth).toBe(5)
     expect(label.params._parentHeight).toBe(3)
   })
@@ -328,14 +334,14 @@ describe(`multiple labels`, () => {
 describe(`with-constraint positioning`, () => {
   it(`box with .nw at (box).e places nw exactly at first box's e`, () => {
     const d = runProgram(`a = Box\nb = Box with .nw at a.e`)
-    const [a, b] = d.shapes().filter(s => s.shapeName === `SBox`)
+    const [a, b] = shapesOf(d).filter(s => s.shapeName === `SBox`)
     expect(b.nw.x).toBeCloseTo(a.e.x)
     expect(b.nw.y).toBeCloseTo(a.e.y)
   })
 
   it(`box "A" with .nw at (box "B").e places nw exactly at first box's e`, () => {
     const d = runProgram(`a = Box "B"\nb = Box "A" with .nw at a.e`)
-    const boxes = d.shapes().filter(s => s.shapeName === `SBox`)
+    const boxes = shapesOf(d).filter(s => s.shapeName === `SBox`)
     const [a, b] = boxes
     expect(b.nw.x).toBeCloseTo(a.e.x)
     expect(b.nw.y).toBeCloseTo(a.e.y)
@@ -415,26 +421,26 @@ describe(`behind`, () => {
 describe(`Goto`, () => {
   it(`moves cursor; next shape centers there`, () => {
     const d = runProgram(`Goto s 0.5\nb = Box`)
-    const box = d.shapes().find(s => s.shapeName === `SBox`)!
+    const box = shapesOf(d).find(s => s.shapeName === `SBox`)!
     expect(box.anchor.y).toBeGreaterThan(0.4)
   })
 
   it(`moves in the current direction by default distance`, () => {
     const d = runProgram(`Face e\nGoto\nb = Box`)
-    const box = d.shapes().find(s => s.shapeName === `SBox`)!
+    const box = shapesOf(d).find(s => s.shapeName === `SBox`)!
     expect(box.anchor.x).toBeGreaterThan(0.5)
   })
 
   it(`accepts absolute position`, () => {
     const d = runProgram(`Goto (3, 4)\nb = Box`)
-    const box = d.shapes().find(s => s.shapeName === `SBox`)!
+    const box = shapesOf(d).find(s => s.shapeName === `SBox`)!
     expect(box.anchor.x).toBeCloseTo(3, 1)
     expect(box.anchor.y).toBeCloseTo(4, 1)
   })
 
   it(`Goto shape resumes layout from that shape`, () => {
     const d = runProgram(`a = Box\nFace west\n-> Box\nFace east\nGoto a\nb = Box`)
-    const boxes = d.shapes().filter(s => s.shapeName === `SBox`)
+    const boxes = shapesOf(d).filter(s => s.shapeName === `SBox`)
     const [a, c, b] = boxes
     // B should be east of A, not overlapping it
     expect(b.anchor.x!).toBeGreaterThan(a.anchor.x!)
@@ -446,14 +452,14 @@ describe(`Goto`, () => {
 describe(`Gap`, () => {
   it(`creates edge-to-edge spacing`, () => {
     const d = runProgram(`a = Box\nGap e 2\nb = Box`)
-    const boxes = d.shapes().filter(s => s.shapeName === `SBox`)
+    const boxes = shapesOf(d).filter(s => s.shapeName === `SBox`)
     // a east edge at 0.5, gap 2, b west edge at 2.5, b center at 3.0
     expect(boxes[1].anchor.x!).toBeCloseTo(3.0, 1)
   })
 
   it(`same repeats previous Gap`, () => {
     const d = runProgram(`Box\nGap e 1\nBox\nGap same\nb = Box`)
-    const boxes = d.shapes().filter(s => s.shapeName === `SBox`)
+    const boxes = shapesOf(d).filter(s => s.shapeName === `SBox`)
     const gap1 = boxes[1].anchor.x! - boxes[0].anchor.x!
     const gap2 = boxes[2].anchor.x! - boxes[1].anchor.x!
     expect(gap1).toBeCloseTo(gap2, 1)
@@ -461,7 +467,7 @@ describe(`Gap`, () => {
 
   it(`defaults to current direction`, () => {
     const d = runProgram(`Face e\nBox\nGap 2\nb = Box`)
-    const boxes = d.shapes().filter(s => s.shapeName === `SBox`)
+    const boxes = shapesOf(d).filter(s => s.shapeName === `SBox`)
     expect(boxes[1].anchor.x!).toBeGreaterThan(boxes[0].anchor.x! + 2)
   })
 })
@@ -469,7 +475,7 @@ describe(`Gap`, () => {
 describe(`Aside`, () => {
   it(`restores position after block`, () => {
     const d = runProgram(`a = Box\nAside {\n  Box\n  Box\n}\nb = Box`)
-    const shapes = d.shapes().filter(s => s.shapeName === `SBox`)
+    const shapes = shapesOf(d).filter(s => s.shapeName === `SBox`)
     // b should be positioned as if the Aside block never happened
     // a is at origin, b should be next to a (same x as shapes[1] which was first after a)
     expect(shapes[3].anchor.x).toBeCloseTo(shapes[1].anchor.x!, 1)
@@ -477,14 +483,14 @@ describe(`Aside`, () => {
 
   it(`restores direction after block`, () => {
     const d = runProgram(`Face e\nAside {\n  Face s\n  Box\n}\nb = Box`)
-    const boxes = d.shapes().filter(s => s.shapeName === `SBox`)
+    const boxes = shapesOf(d).filter(s => s.shapeName === `SBox`)
     // b should flow east (original direction), not south
     expect(boxes[1].anchor.y).toBeCloseTo(0, 1)
   })
 
   it(`shapes inside aside are still drawn`, () => {
     const d = runProgram(`Aside {\n  Box at (5, 5)\n}`)
-    const boxes = d.shapes().filter(s => s.shapeName === `SBox`)
+    const boxes = shapesOf(d).filter(s => s.shapeName === `SBox`)
     expect(boxes.length).toBe(1)
     expect(boxes[0].anchor.x).toBeCloseTo(5)
     expect(boxes[0].anchor.y).toBeCloseTo(5)
@@ -492,7 +498,7 @@ describe(`Aside`, () => {
 
   it(`does not make aside shapes implicit connector targets`, () => {
     const d = runProgram(`Box\nl = line\nAside {\n  Circle rad .1 at l.c\n}\nBox`)
-    const shapes = d.shapes()
+    const shapes = shapesOf(d)
     const line = shapes.find(s => s.shapeName === `SLine`)!
     const boxes = shapes.filter(s => s.shapeName === `SBox`)
     // The line's successor should be the second Box, not the Circle inside Aside
@@ -511,19 +517,19 @@ describe(`step limit`, () => {
 describe(`label fill color`, () => {
   it(`rich label with explicit fill uses that fill`, () => {
     const d = runProgram(`Box ("hello" fill ~red)`)
-    const [, label] = d.shapes()
+    const [, label] = shapesOf(d)
     expect(label.params.fill).toBe(`#ff0000`)
   })
 
   it(`rich label with explicit fill has no fill slot`, () => {
     const d = runProgram(`Box ("hello" fill ~red)`)
-    const [, label] = d.shapes()
+    const [, label] = shapesOf(d)
     expect(label.params._fill_slot).toBeUndefined()
   })
 
   it(`rich label without fill gets auto-colored from parent`, () => {
     const d = runProgram(`Box "hello"`)
-    const [box, label] = d.shapes()
+    const [box, label] = shapesOf(d)
     // Label should have some fill (auto-colored), not the parent's fill
     expect(label.params.fill).toBeDefined()
     expect(label.params.fill).not.toBe(box.params.fill)
@@ -531,14 +537,14 @@ describe(`label fill color`, () => {
 
   it(`explicit fill overrides auto-coloring`, () => {
     const d = runProgram(`Box fill ~blue ("hello" fill ~green)`)
-    const [, label] = d.shapes()
+    const [, label] = shapesOf(d)
     // Should be green, not auto-derived from blue
     expect(label.params.fill).toBe(`#008000`)
   })
 
   it(`explicit fill on second label in multi-label box`, () => {
     const d = runProgram(`Box "hello" ("world" fill ~blue)`)
-    const shapes = d.shapes()
+    const shapes = shapesOf(d)
     // Should create separate labels when styling differs
     expect(shapes).toHaveLength(3) // Box + 2 labels
     const [, label1, label2] = shapes
@@ -549,7 +555,7 @@ describe(`label fill color`, () => {
 
   it(`styled labels are vertically stacked`, () => {
     const d = runProgram(`Box "hello" ("world" fill ~blue)`)
-    const [, label1, label2] = d.shapes()
+    const [, label1, label2] = shapesOf(d)
     // Labels should have different Y positions (stacked vertically)
     expect(label1.anchor.y).not.toBe(label2.anchor.y)
     // First label should be above second (smaller Y in SVG coordinates)
@@ -558,14 +564,14 @@ describe(`label fill color`, () => {
 
   it(`palette color fill (like ~b6) is respected`, () => {
     const d = runProgram(`Box ("hello" fill ~b6)`)
-    const [, label] = d.shapes()
+    const [, label] = shapesOf(d)
     // Should have the palette slot, not the auto-derived foreground slot
     expect(label.params._fill_slot).toMatch(/b6$/)
   })
 
   it(`palette color fill on second label in multi-label box`, () => {
     const d = runProgram(`Box "hello" ("world" fill ~b6)`)
-    const shapes = d.shapes()
+    const shapes = shapesOf(d)
     expect(shapes).toHaveLength(3) // Box + 2 labels
     const [, , label2] = shapes
     expect(label2.params._fill_slot).toMatch(/b6$/)
@@ -575,7 +581,7 @@ describe(`label fill color`, () => {
 describe(`Label font_size syntax`, () => {
   it(`Label font_size 24pt "hello" sets font_size`, () => {
     const d = runProgram(`Label font_size 24pt "hello"`)
-    const [label] = d.shapes()
+    const [label] = shapesOf(d)
     expect(label.shapeName).toBe(`SLabel`)
     expect(label.params.font_size).toBe(`24pt`)
     expect(label.params.text).toBe(`hello`)
@@ -583,21 +589,21 @@ describe(`Label font_size syntax`, () => {
 
   it(`Label "hello" font_size 24pt sets font_size after text`, () => {
     const d = runProgram(`Label "hello" font_size 24pt`)
-    const [label] = d.shapes()
+    const [label] = shapesOf(d)
     expect(label.params.font_size).toBe(`24pt`)
     expect(label.params.text).toBe(`hello`)
   })
 
   it(`Label 12pt "hello" sets font_size without keyword`, () => {
     const d = runProgram(`Label 12pt "hello"`)
-    const [label] = d.shapes()
+    const [label] = shapesOf(d)
     expect(label.params.font_size).toBe(`12pt`)
     expect(label.params.text).toBe(`hello`)
   })
 
   it(`rich label with font_size computes valid dimensions`, () => {
     const d = runProgram(`box ("hello" font_size 12pt)`)
-    const label = d.shapes()[1]
+    const label = shapesOf(d)[1]
     expect(label.shapeName).toBe(`SLabel`)
     expect(label.width).toBeGreaterThan(0)
     expect(label.height).toBeGreaterThan(0)
@@ -609,7 +615,7 @@ describe(`Label font_size syntax`, () => {
 describe(`directional line syntax`, () => {
   it(`line right 2 draws a line 2 units to the right`, () => {
     const d = runProgram(`line right 2`)
-    const [line] = d.shapes()
+    const [line] = shapesOf(d)
     expect(line.shapeName).toBe(`SLine`)
     expect(line.end.x - line.start.x).toBeCloseTo(2)
     expect(line.end.y - line.start.y).toBeCloseTo(0)
@@ -617,33 +623,33 @@ describe(`directional line syntax`, () => {
 
   it(`line up 3 draws a line 3 units up (negative y)`, () => {
     const d = runProgram(`line up 3`)
-    const [line] = d.shapes()
+    const [line] = shapesOf(d)
     expect(line.end.x - line.start.x).toBeCloseTo(0)
     expect(line.end.y - line.start.y).toBeCloseTo(-3)
   })
 
   it(`line right 2 up 1 draws a diagonal line`, () => {
     const d = runProgram(`line right 2 up 1`)
-    const [line] = d.shapes()
+    const [line] = shapesOf(d)
     expect(line.end.x - line.start.x).toBeCloseTo(2)
     expect(line.end.y - line.start.y).toBeCloseTo(-1)
   })
 
   it(`north is synonym for up`, () => {
     const d = runProgram(`line north 2`)
-    const [line] = d.shapes()
+    const [line] = shapesOf(d)
     expect(line.end.y - line.start.y).toBeCloseTo(-2)
   })
 
   it(`east is synonym for right`, () => {
     const d = runProgram(`line east 2`)
-    const [line] = d.shapes()
+    const [line] = shapesOf(d)
     expect(line.end.x - line.start.x).toBeCloseTo(2)
   })
 
   it(`-> right 2 works with arrow abbreviation`, () => {
     const d = runProgram(`-> right 2`)
-    const [line] = d.shapes()
+    const [line] = shapesOf(d)
     expect(line.end.x - line.start.x).toBeCloseTo(2)
   })
 })

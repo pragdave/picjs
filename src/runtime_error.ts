@@ -1,15 +1,13 @@
-import { Interpreter } from "./interpreter.js" 
-import { Visitor } from "./visitor.js"
+import type { Interpreter } from "./interpreter.js"
 import { Location } from "./location.js"
 
 interface ErrorContext {
   loc: Location
-  interpreter: Visitor
+  interpreter: Interpreter
 }
 
 export class RTE extends Error {
 
-  interpreter?: Interpreter = undefined
   context?: ErrorContext[]
 
   constructor(message: string, public loc?: Location) {

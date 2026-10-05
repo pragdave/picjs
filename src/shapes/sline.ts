@@ -22,10 +22,6 @@ export class SLine extends LineLike {
   handle_attr_start()     { return new TPosition(this.start)   }
   handle_attr_end()       { return new TPosition(this.end)     }
 
-  // these two are the thunk versions, for dynamic evaluation
-  get _start()            { return this.hidden._start          }
-  get _end()              { return this.hidden._end            }
-
   // and these are filled in with actual coordinates by the geometry
   get start()             { return this.params.start           }
   set start(val)          { this.params.start = val            }

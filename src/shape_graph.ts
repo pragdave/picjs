@@ -159,7 +159,7 @@ export class ShapeGraph {
       if (!shape.parentGroup) {
         if (shape instanceof Shapes.SPolyline) {
           this.dispatcher.positionPolyline(shape)
-        } else if (shape instanceof Shapes.LineLike) {
+        } else if (shape instanceof Shapes.SLine || shape instanceof Shapes.SArc) {
           this.dispatcher.positionLine(shape)
         } else if (shape.withConstraint) {
           this.dispatcher.constrainedLayout(shape)
