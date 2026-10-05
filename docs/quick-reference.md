@@ -54,7 +54,7 @@ Every attribute, what type of value it takes, and what it does.
 | `take` | number | Animation duration |
 | `thickness` / `thick` | number | Stroke width (alias for `stroke_width`) |
 | `to` | position | Line/arc end point |
-| `turn` | `cw` / `ccw` / angle | Arc turn direction |
+| `turn` | `cw` / `ccw` / angle | How far an arc turns: a quarter circle either way, or an angle (positive is clockwise) |
 | `width` / `wid` | number | Shape width |
 | `with` | constraint | Position constraint (see [Constraint](#constraint)) |
 | `x` | number | X position |

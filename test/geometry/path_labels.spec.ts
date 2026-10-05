@@ -95,7 +95,7 @@ describe(`Default Arc turn`, () => {
   const arc = valueOf(`Arc from (0, 0) to (100, 0)`)
 
   it(`defaults to CW (bulges upward)`, () => {
-    expect(arc.turn).toBe(`cw`)
+    expect(arc.sweep).toBe(90)
   })
 
   it(`midpoint is above chord (negative Y)`, () => {
@@ -109,7 +109,7 @@ describe(`Arc with arrow syntax`, () => {
   const arc = valueOf(`Arc -> from (0, 0) to (100, 0)`)
 
   it(`defaults to CW even with arrow`, () => {
-    expect(arc.turn).toBe(`cw`)
+    expect(arc.sweep).toBe(90)
   })
 
   it(`midpoint is above chord (negative Y)`, () => {

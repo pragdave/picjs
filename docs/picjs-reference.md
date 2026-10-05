@@ -173,18 +173,36 @@ line -> from a.s
 ### Arc
 
 ```
-Arc [endings] from <position> to <position> [options]
+Arc [endings] [from <position> to <position>] [options]
 ```
 
 | Option | Value | Default |
 |--------|-------|---------|
 | `cw` `ccw` | — | `cw` |
+| `turn` | `cw`, `ccw`, or an angle | `cw` |
 
-`turn cw` and `turn ccw` may be written in full.
+An arc turns through a quarter circle: `cw` clockwise, `ccw` anticlockwise.
+`turn` with an angle turns that many degrees instead, clockwise when the angle
+is positive and anticlockwise when it is negative, as `Face`'s angles do:
+`turn 90` is `cw` and `turn -90` is `ccw`. The angle must be between -360 and
+360, and not 0.
 
 ```picjs example
 Arc from (0,0) to (2,2)
 Arc from (0,0) to (2,2) ccw stroke ~b3
+Arc from (0,0) to (2,2) turn 270 stroke ~b5
+```
+
+Without `from` and `to`, an arc starts where the last shape left off, heading
+the current way, and curves round a circle of radius 0.625. It leaves the
+direction turned by the same angle, so what follows carries on from where the
+arc points.
+
+```picjs example
+Arc turn 45
+Arc turn -90
+Arc turn 180
+Line
 ```
 
 ### Label
