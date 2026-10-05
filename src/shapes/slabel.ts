@@ -169,7 +169,7 @@ export class SLabel extends SBase {
 
   setAtAttr(name: string, value: TA) {
     if (name === `text`) {
-      this.text = value instanceof TString ? value.value : String(value.toNative())
+      this.text = value.asText()
       this.calculateDimensions()
       return this
     }

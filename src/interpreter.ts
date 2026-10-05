@@ -1084,7 +1084,8 @@ export class Interpreter extends Visitor{
         result[k] = obj[k]
       else {
         const value = this.accept(obj[k] as AST.Node)
-        result[k] = value.toNative()
+        // a label's text is any value a string can hold, as it reads in one
+        result[k] = k === `text` ? value.asText() : value.toNative()
         if (value instanceof TColor && value.paletteSlot) {
           result[`_${k}_slot`] = value.paletteSlot
         }
