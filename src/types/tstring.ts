@@ -14,10 +14,7 @@ export class TString extends TInterpolatable<string> {
   opPlus(other: TA)   { 
     if (other instanceof TString) 
       return new TString(this.value + other.value)
-
-    if (`toString` in other)
-      return new TString(this.value + other.toString())
-    throw new RTE(`Cannot concatenate ${(other as TA).nameForErrors()} to the string "${this.value}"`)
+    return new TString(this.value + other.asText())
   }
 
   // "ab" * 3 is "ababab"

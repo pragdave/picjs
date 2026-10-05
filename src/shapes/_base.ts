@@ -702,6 +702,11 @@ export class SBase extends TBase<null> {
     return this
   }
 
+  // A shape has no text of its own, so putting one in a string is a mistake
+  override asText(): never {
+    throw new RTE(`A string can't contain a shape, but this is ${this.nameForErrors()}`)
+  }
+
   // a Box, an Arc
   override nameForErrors() {
     const name = this.typeName

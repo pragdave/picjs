@@ -124,6 +124,12 @@ export class TBase<ValueType, > {
     return String(this.toNative())
   }
 
+  // This value as text in a string, by "+" or #{...}. toString can say more,
+  // for debugging (?? uses it), so the two are kept apart
+  asText(): string {
+    return this.toString()
+  }
+
   operatorNotSupported(op: string): never {
     throw new RTE(
       `${this.nameForErrors()} does not implement "${op}"`

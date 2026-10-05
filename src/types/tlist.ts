@@ -138,6 +138,11 @@ export class TList extends TBase<TA[]> {
     const contents = this.value.map(v => v?.toString() ?? ``)
     return `[ ${contents.join(`, `)} ]`
   }
+
+  override asText() {
+    const contents = this.value.map(v => v?.asText() ?? ``)
+    return `[ ${contents.join(`, `)} ]`
+  }
 }
 
 

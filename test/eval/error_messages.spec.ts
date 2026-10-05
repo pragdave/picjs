@@ -1,4 +1,5 @@
 import { newDispatcher } from "../helpers/eval.js"
+import { Dispatcher } from "../../src/dispatcher.js"
 import { parseToAST, ParseStatus } from "../../src/parser.js"
 import { parse } from "../../src/peg_parser/jp.js"
 
@@ -58,6 +59,35 @@ describe(`string operators`, () => {
     [`"ab" / 2`,     /"\/" needs a string after a string, but this is 2/],
   ])(`%s is an error that says what is needed`, (src, message) => {
     expect(() => runProgram(`v = ${src}`)).toThrow(message)
+  })
+
+  it.each([
+    [`"a" + 3`,            `a3`],
+    [`"a" + (1, 2)`,       `a(1, 2)`],
+    [`"a" + [1, "b"]`,     `a[ 1, b ]`],
+    [`"a#{3}"`,            `a3`],
+    [`"a#{[1, 2]}"`,       `a[ 1, 2 ]`],
+  ])(`%s puts the value's text in the string`, (src, expected) => {
+    const dispatcher = runProgram(`v = ${src}`)
+    expect(dispatcher.getCurrentBinding().get_variable_value(`v`).toNative()).toEqual(expected)
+  })
+
+  // a shape's text is only its debugging dump, which is never what was meant
+  it.each([
+    [`"a" + b`],
+    [`"a#{b}"`],
+    [`"a" + [1, b]`],
+    [`"a#{[b]}"`],
+  ])(`%s is an error: a string can't contain a shape`, src => {
+    expect(() => runProgram(`b = Box\nv = ${src}`)).toThrow(/^A string can't contain a shape, but this is a Box$/)
+  })
+
+  it(`can still inspect a shape with ??`, () => {
+    const logged: string[] = []
+    const parsed = parseToAST(parse, `b = Box\n?? b`, `Start`, false)
+    if (parsed.status !== ParseStatus.Ok) throw new Error(String(parsed.error))
+    new Dispatcher((_loc, value) => logged.push(value), null as unknown as SVGElement, 1).start(parsed.ast)
+    expect(logged[0]).toMatch(/^Box\t\tattrs: .*width 1/)
   })
 })
 

@@ -974,7 +974,7 @@ export class Interpreter extends Visitor{
   VisitInterpolatedString(node: AST.InterpolatedString) {
     const result = node.parts.map(part => {
       const val = this.accept(part)
-      return val.toString()
+      return val.asText()
     }).join(``)
     return new TString(result)
   }
