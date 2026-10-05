@@ -255,8 +255,8 @@ AnimationParams
 
 ```ebnf
 AnimationParam  = 'take' __ Expression _
-                | ( 'ease' | 'each' ) __ String _
-                | ( 'ease' | 'each' ) __ [a-zA-Z] [a-zA-Z0-9]* _ ;
+                | 'ease' __ String _
+                | 'ease' __ [a-zA-Z] [a-zA-Z0-9]* _ ;
 ```
 
 ## `Assignment`
@@ -286,7 +286,7 @@ AttrName        = 'align'
                 | 'cw'
                 | 'dashed'
                 | 'dotted'
-                | ( 'ease' | 'each' )
+                | 'ease'
                 | 'fill'
                 | 'font_family'
                 | 'font_size'
@@ -1379,7 +1379,7 @@ one spelling, any of them may be used.
 | dashed | `dashed` |
 | dotted | `dotted` |
 | draw | `draw` |
-| ease | `ease`, `each` |
+| ease | `ease` |
 | Ellipse | `Ellipse`, `ellipse` |
 | else | `else` |
 | Face | `Face` |

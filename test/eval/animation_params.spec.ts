@@ -36,6 +36,11 @@ describe(`animation parameters`, () => {
       expect(() => runProgram(`b = Box\nmove b to (1, 1) ease "wobbly"`))
         .toThrow(/"ease" parameter must be one of/)
     })
+
+    it(`is spelled ease`, () => {
+      expect(() => runProgram(`b = Box\nmove b to (1, 1) ease "bounce"`)).not.toThrow()
+      expect(() => runProgram(`b = Box\nmove b to (1, 1) each "bounce"`)).toThrow()
+    })
   })
 
   describe(`what move moves`, () => {
