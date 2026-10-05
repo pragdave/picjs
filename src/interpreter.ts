@@ -67,6 +67,8 @@ export class Interpreter extends Visitor{
   ) {
     super()
     this.binding = new Binding()
+    // Before anything makes a shape: the geometry makes one as it starts
+    this.binding.bulkSetDefaults(Defaults)
     this.stylesheets = []
     this.cssPrefix = `_myopic-${runNumber}`
   }
@@ -74,7 +76,6 @@ export class Interpreter extends Visitor{
   dispatcherIsReady() {
     if (this.binding.isToplevel()) {
       this.binding.set_variable(`@`, new TTimeline(this.dispatcher.getTimeline()))
-      this.binding.bulkSetDefaults(Defaults)
       this.binding.addBuiltinFunctions()
     }
   }
@@ -398,15 +399,7 @@ export class Interpreter extends Visitor{
       this.dispatcher.recordDependency(child, group)
     }
 
-    // 12. Propagate group attributes to children
-    if (groupArgs.opacity !== undefined) {
-      const val = Number(groupArgs.opacity)
-      for (const child of group.groupChildren) {
-        child.params.opacity = val
-      }
-    }
-
-    // 13. Handle behind constraint
+    // 12. Handle behind constraint
     if (behindAST) {
       const target = this.accept(behindAST)
       if (!(target instanceof Shapes.SBase))
@@ -414,10 +407,10 @@ export class Interpreter extends Visitor{
       group.behind = target
     }
 
-    // 12. Restore direction before positioning so the group flows correctly
+    // 13. Restore direction before positioning so the group flows correctly
     this.dispatcher.restoreDirection(savedDirection)
 
-    // 13. Position and add to timeline
+    // 14. Position and add to timeline
     this.addShapeToGeometry(group)
     this.addCreateShapeToTimeline(group)
 

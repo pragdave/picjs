@@ -1,5 +1,4 @@
 import { LineLike, PathPoint } from "./line_like.js"
-import { TColor, TNumber } from "../types.js"
 import { Cardinals, CardinalFactorsFromCenter, UnitVector, XY } from "../position.js"
 
 const DefaultLength = 0.625
@@ -13,28 +12,13 @@ export class SArc extends LineLike {
   }
 
 
-  handle_attr_thickness() { return new TNumber(this.thickness) }
-  handle_attr_length()    { return new TNumber(this.length) }
-  handle_attr_width()     { return new TNumber(this.width) }
-  handle_attr_height()    { return new TNumber(this.height) }
-  handle_attr_stroke()    { return new TColor(this.stroke) }
-
-  // and these are filled in with actual coordinates by the geometry
-  get start()          { return this.params.start }
-  set start(val)       { this.params.start = val }
-  get end()            { return this.params.end }
-  set end(val)         { this.params.end = val }
-
-  get thickness()      { return this.params.stroke_width }
-
   // turn can be a plain string (from defaults) or AST node { type: "String", value: "cw" }
   get turn(): string | undefined {
     const t = this.params.turn
     if (typeof t === `string`) return t
-    if (t && typeof t === `object` && `value` in t) return t.value
+    if (t && typeof t === `object` && `value` in t && typeof t.value === `string`) return t.value
     return undefined
   }
-  get stroke()         { return this.params.stroke }
   get width()          { return Math.abs(this.start.x - this.end.x) }
   get height()         { return Math.abs(this.start.y - this.end.y) }
   get default_length() { return DefaultLength }

@@ -9,38 +9,34 @@ export type EasingNames =
   `linear` | `cubicIn` | `cubicOut` | `quadIn` | `quadOut` |
   `bounce` | `cubic` | `cubicInOut` | `quad` | `quadInOut` 
 
-// export interface AnimationParams {
-//   ease: EasingNames
-//   take: number
-//   followsPrevious: boolean
-// }
+// An animation's timing, as given: take, ease, and followsPrevious (set by
+// `then`). Each is optional, and checked by the animator.
+export type AnimationParams = Record<string, unknown>
 
-export type AnimationParams = Record<string, any>
-
-const DefaultParams: AnimationParams = {
-  take: 0.7,
-  ease: `linear` ,
-  followsPrevious: false,
+// ...and once checked, with the defaults filled in
+interface Timing {
+  take: number
+  ease: EasingNames
+  followsPrevious: boolean
 }
-
 
 export abstract class AnimatorBase {
 
-  protected params: AnimationParams
+  protected params: Timing
   protected range?: TRange
 
   protected _done = false
   protected id = `anim-${n++}`
 
   constructor(animationParams: AnimationParams) {
-    this.params = { ...DefaultParams, ...animationParams }
-    if (!(this.params.ease in Easing)) {
+    const { take = 0.7, ease = `linear`, followsPrevious = false } = animationParams
+    if (typeof ease !== `string` || !(ease in Easing)) {
       throw new RTE(`The "ease" parameter must be one of ${Object.keys(Easing).join(`, `)}`)
     }
-    const take = this.params.take
     if (typeof take !== `number` || !(take >= 0)) {
       throw new RTE(`The "take" parameter must be a number of seconds, 0 or more, but it is ${take}`)
     }
+    this.params = { take, ease: ease as EasingNames, followsPrevious: followsPrevious === true }
   }
 
   duration() {
@@ -243,7 +239,7 @@ class SetAttrAnimator extends AnimatorBase {
   constructor(
     public shape: Shape.SBase, 
     public attrName: string, 
-    public value: TInterpolatable<any>, 
+    public value: TInterpolatable<unknown>, 
     params: AnimationParams
   ) {
     super(params)
@@ -271,7 +267,7 @@ class CrossFadeAnimator extends AnimatorBase {
   constructor(
     public shape: Shape.SBase, 
     public attrName: string, 
-    public value: TInterpolatable<any>, 
+    public value: TInterpolatable<unknown>, 
     params: AnimationParams
   ) {
     super(params)

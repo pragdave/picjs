@@ -1,5 +1,5 @@
 import { SBase }from "./_base.js"
-import { TNumber } from "../types.js"
+import { TNumber, TPosition } from "../types.js"
 import { XY } from "../position.js"
 import type * as AST from "../ast.js"
 
@@ -22,11 +22,21 @@ export abstract class LineLike extends SBase {
   get _start(): AST.Node | undefined { return this.hidden._start as AST.Node | undefined }
   get _end(): AST.Node | undefined   { return this.hidden._end as AST.Node | undefined }
 
-  // Subclasses must implement start/end accessors for geometry positioning
-  abstract get start(): XY
-  abstract set start(val: XY)
-  abstract get end(): XY
-  abstract set end(val: XY)
+  // Where the geometry has put the line's ends
+  get start(): XY    { return this.param(`start`) }
+  set start(val: XY) { this.params.start = val }
+  get end(): XY      { return this.param(`end`) }
+  set end(val: XY)   { this.params.end = val }
+
+  get thickness(): number { return this.param(`stroke_width`) }
+  get stroke(): string    { return this.param(`stroke`) }
+  get line_path()         { return this.params.line_path }
+  abstract get length(): number
+
+  handle_attr_thickness() { return new TNumber(this.thickness) }
+  handle_attr_length()    { return new TNumber(this.length) }
+  handle_attr_start()     { return new TPosition(this.start) }
+  handle_attr_end()       { return new TPosition(this.end) }
 
   handle_attr_draw_progress() {
     return new TNumber(this.params.draw_progress ?? 1)

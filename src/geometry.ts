@@ -336,9 +336,9 @@ export class Geometry {
             startXY = { ...c }
           }
         }
-      } else if (poly.start?.x !== undefined) {
+      } else if (poly.params.start !== undefined) {
         // Already resolved during initial layout with no dynamic dependency — keep it
-        startXY = poly.start
+        startXY = poly.params.start
       } else {
         // Initial layout: resolve from lastShape
         const fromShape = this.lastShape

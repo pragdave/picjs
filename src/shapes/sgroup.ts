@@ -40,7 +40,7 @@ export class SGroup extends SBase {
   padding(): [ number, number ] {
     const pad = this.params.padding
     if (pad === undefined) return [ 0, 0 ]
-    if (typeof pad === `object` && pad !== null && `x` in pad)
+    if (typeof pad === `object` && pad !== null && `x` in pad && `y` in pad)
       return [ Number(pad.x) || 0, Number(pad.y) || 0 ]
     return [ Number(pad) || 0, Number(pad) || 0 ]
   }
@@ -134,16 +134,10 @@ export class SGroup extends SBase {
     }
   }
 
-  // Override to propagate opacity to children (rotation handled by SVG transform)
+  // Opacity is on the group's element, which applies it to everything inside;
+  // rotation is handled by its SVG transform
   setAnimatableAttr(attr: string, newValue: TA) {
     super.setAnimatableAttr(attr, newValue)
-    if (attr === `opacity`) {
-      const raw = newValue.toNative()
-      for (const child of this.groupChildren) {
-        child.params[attr] = raw
-        child.rememberRenderNeeded()
-      }
-    }
     // Rotation is handled by SVG transform - just mark for re-render
     if (attr === `rotation`) {
       this.rememberRenderNeeded()

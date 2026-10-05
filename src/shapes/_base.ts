@@ -8,8 +8,56 @@ import { isKnownAttribute, acceptedAttributesFor } from "./attributes.js"
 import { Binding } from "../binding.js"
 import type { SGroup } from "./sgroup.js"  // type-only import avoids circular dependency
 import type { TA } from "../types.js"
+import type { TFont, OptionalFontAttributes } from "../types/tfont.js"
 
-export type ShapeArgs = Record<string, any>
+// A shape's attributes, once evaluated to plain values. The ones the code
+// reads are typed here; any attribute can be set, so the rest are unknown.
+export interface ShapeParams {
+  [attribute: string]: unknown
+
+  x?: number
+  y?: number
+  width?: number
+  height?: number
+  r?: number
+  rx?: number
+  ry?: number
+  rotation?: number
+  opacity?: number
+  fill?: string
+  stroke?: string
+  stroke_width?: number
+  linestyle?: string
+  line_path?: string              // straight, smooth or stepped
+  length?: number
+  draw_progress?: number
+  reveal_time?: number
+  hide_time?: number
+
+  text?: string
+  font?: TFont | OptionalFontAttributes   // a spec, until SLabel makes it a TFont
+  font_size?: number | string     // a number, or with units (12pt)
+  font_family?: string
+  line_height?: number
+  maxwidth?: number
+
+  start?: XY
+  end?: XY
+  waypoints?: XY[]
+  closed?: boolean
+
+  _fill_slot?: string             // a palette color's slot, for theming
+  _stroke_slot?: string
+  _parentFill?: string            // for a label inside a shape
+  _parentFillSlot?: string
+  _parentWidth?: number
+  _parentHeight?: number
+  _stackOffset?: number
+}
+
+// What a shape is made from: its evaluated attributes, plus the entries the
+// interpreter adds (_shapeName, _class, and so on)
+export type ShapeArgs = ShapeParams
 export type ProcessedWithConstraint =  {
   type: `ProcessedWithConstraint`,
   cardinal: Cardinals,
@@ -70,14 +118,14 @@ export class SBase extends TBase<null> {
   public id        = `s-id-${sID++}`
   public shapeName = this.constructor.name
 
-  public params:         ShapeArgs = {}
+  public params:         ShapeParams = {}
   public anchorX:        number | null = null
   public anchorY:        number | null = null
   public _hasExplicitAt = false
   public withConstraint?: WithConstraint
 
   protected dispatcher: Dispatcher
-  protected hidden: ShapeArgs = {}
+  protected hidden: Record<string, unknown> = {}
   protected bindingAtCreation: Binding
   protected childShape?: SBase
   parentShape?: SBase
@@ -173,13 +221,13 @@ export class SBase extends TBase<null> {
   }
 
   setupParams(args: ShapeArgs) {
-    if (args._shapeName) {
+    if (typeof args._shapeName === `string`) {
       this.shapeName = args._shapeName
     }
     this.params = this.dispatcher.getAllDefaultAttributes(
       `Shapes`,
       this.shapeName,
-      args._class || `.normal`
+      typeof args._class === `string` ? args._class : `.normal`
     )
 
     for (const k of Object.keys(args)) {
@@ -192,8 +240,9 @@ export class SBase extends TBase<null> {
       }
       else if (k === `at`) {
         this.checkAttributeIsKnown(k)
-        this.anchorX = val.x
-        this.anchorY = val.y
+        const { x, y } = val as XY
+        this.anchorX = x
+        this.anchorY = y
         this._hasExplicitAt = true
       }
       else {
@@ -310,12 +359,12 @@ export class SBase extends TBase<null> {
   handle_attr_ht()        { return new TNumber(this.height)           }
   handle_attr_height()    { return new TNumber(this.height)           }
 
-  handle_attr_fill()      { return new TColor(this.params.fill)       }
-  handle_attr_stroke()    { return new TColor(this.params.stroke)     }
+  handle_attr_fill()      { return this.colorAttribute(`fill`)   }
+  handle_attr_stroke()    { return this.colorAttribute(`stroke`) }
 
   handle_attr_opacity()   { return new TNumber(this.params.opacity ?? 1) }
   handle_attr_rotation()  { return new TNumber(this.rotation)         }
-  handle_attr_thickness() { return new TNumber(this.params.stroke_width) }
+  handle_attr_thickness() { return new TNumber(this.param(`stroke_width`)) }
 
   // cardinal points are dynamically generated based on the current center, width, and height
 
@@ -388,6 +437,27 @@ export class SBase extends TBase<null> {
   get x() { return this.anchorX }
   get y() { return this.anchorY }
 
+  // A parameter that the shape's defaults, or the geometry, always supply
+  protected param<K extends keyof ShapeParams & string>(name: K): NonNullable<ShapeParams[K]> {
+    const value = this.params[name]
+    if (value === undefined || value === null)
+      throw new Error(`internal error: a ${this.shapeName} has no ${name}`)
+    return value as NonNullable<ShapeParams[K]>
+  }
+
+  // A color attribute, with its palette slot, so a copy still follows the
+  // theme. Not every shape has both: a line has no fill.
+  private colorAttribute(name: `fill` | `stroke`) {
+    const color = this.params[name]
+    if (color === undefined)
+      throw new RTE(`${this.nameForErrors()} has no ${name}`)
+    const result = TColor.fromString(color)
+    const slot = this.params[`_${name}_slot`]
+    if (typeof slot === `string`)
+      result.paletteSlot = slot
+    return result
+  }
+
   // The anchor point, once the shape has been positioned
   get anchor(): XY {
     if (this.anchorX === null || this.anchorY === null)
@@ -395,11 +465,11 @@ export class SBase extends TBase<null> {
     return { x: this.anchorX, y: this.anchorY }
   }
 
-  get width() { return this.params.width }
-  get height() { return this.params.height }
+  get width(): number  { return this.param(`width`) }
+  get height(): number { return this.param(`height`) }
 
-  get rotation() { return this.params.rotation }
-  get rotationCenter() { return this.hidden._rotationCenter }
+  get rotation(): number { return this.param(`rotation`) }
+  get rotationCenter() { return this.hidden._rotationCenter as AST.Node | undefined }
 
   get nw() { return this.corner(`nw`) }
   get n() { return this.corner(`n`) }

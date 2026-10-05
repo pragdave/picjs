@@ -11,6 +11,12 @@
 * Fix assigning a shape's `x`, `y`, `width` or `height` after creating it (`b.width = 3`), which
   failed; `x` and `y` now move the shape, and can be animated with `set`
 * Fix a shape at x or y = 0 reporting it as -1
+* Fix a group's opacity being applied twice, so its contents were fainter than asked (and a
+  shape's own opacity inside it was replaced rather than combined)
+* Copying a palette color from one shape to another (`circle fill b.fill`) keeps it a palette
+  color, so the copy still follows the light or dark theme
+* Fix a label's `font` returning a broken font rather than the one it was given; asking a shape for
+  a color it doesn't have (a line's `fill`) is an error that says so
 * Native functions (`sin`, `polar`, a color's `darken` and `spin`, a number's `times`, a list's
   `each` and `map`, a range's `ease`, and others) report an argument of the wrong kind, rather
   than giving a wrong answer or failing obscurely; so do assignments of the wrong kind to a

@@ -4,13 +4,12 @@ import { TList } from "./tlist.js"
 import { TNative } from "./tnative.js"
 import { TNumber } from "./tnumber.js"
 import { EasingNames } from "../animators/_base.js"
-import { numberArgument, stringArgument } from "./arguments.js"
+import { functionArgument, numberArgument, stringArgument } from "./arguments.js"
 
 
 const BFreq = 0.3 
 
 
-type InternalReduceCallback = (acc: any, i: number) => any
 type EaseFn = (x: number) => number
 
 export const Easing:Record<EasingNames, EaseFn> = {
@@ -43,7 +42,7 @@ export class TRange extends TBase<null> {
 
   easingFunction = Easing.linear
 
-  constructor(public start: TInterpolatable<any>, public  end: TInterpolatable<any>) {
+  constructor(public start: TInterpolatable<unknown>, public end: TInterpolatable<unknown>) {
     super(null, AnimationStyle.none)
 
     this.addNativeFunctions()
@@ -53,7 +52,7 @@ export class TRange extends TBase<null> {
     if (!(other instanceof TNumber))
       throw new RTE(`You can only multiply a range by a number (got ${other.toString()}`)
 
-    const ratio = other.toNative()
+    const ratio = other.value
 
     if (ratio < 0 || ratio > 1) 
       throw new RTE(`You can only multiply a range by a number between 0 and 1 (got ${ratio})`)
@@ -101,12 +100,9 @@ export class TRange extends TBase<null> {
       `Invoke the callback _steps_ times, passing equally spaced interpolations ` +
       `from the range`,
 
-      (interpreter, steps, callback) => {
-
-        if (!(steps instanceof TNumber))
-          throw new RTE(`the steps parameter must be a number`)
-
-        const iSteps = steps.toNative()
+      (interpreter, steps, callbackArg) => {
+        const iSteps = numberArgument(`steps`, `number of steps`, steps)
+        const callback = functionArgument(`steps`, `callback`, callbackArg)
 
         if (iSteps < 0)   throw new RTE(`steps cannot be less than zero`)
         if (iSteps === 0) return this
@@ -131,9 +127,9 @@ export class TRange extends TBase<null> {
       `"end - start + 1" times, passing it the current value and ` +
       `the index.`,
 
-      (interpreter, callback) => {
-    
-        this.reduce(0, (index: number, i: number) => {
+      (interpreter, callbackArg) => {
+        const callback = functionArgument(`each`, `callback`, callbackArg)
+        this.reduce(0, (index, i) => {
           interpreter.callFunction(callback, [ new TNumber(i), new TNumber(index) ])
           return index + 1
         })
@@ -147,9 +143,9 @@ export class TRange extends TBase<null> {
       `"end - start + 1" times, passing it the current value. Collects ` +
       `and returns a list of the values returned by each invocation.`,
 
-      (interpreter, callback) => {
-
-        const result = this.reduce([], (acc: TA[], i: number) => {
+      (interpreter, callbackArg) => {
+        const callback = functionArgument(`map`, `callback`, callbackArg)
+        const result = this.reduce<TA[]>([], (acc, i) => {
           const thisTerm = interpreter.callFunction(callback, [ new TNumber(i) ])
           acc.push(thisTerm)
           return acc
@@ -159,7 +155,9 @@ export class TRange extends TBase<null> {
       })
   }
 
-  reduce(acc: any, internalCallback: InternalReduceCallback) {
+  // Call fn for each integer from start to end, passing it the result of the
+  // previous call (or acc, the first time)
+  reduce<T>(acc: T, fn: (acc: T, i: number) => T): T {
     const ErrMsg = `You can only use [a..b].map/each if a and b are integers`
     if (!(this.start instanceof TNumber && this.end instanceof TNumber))
       throw new RTE(ErrMsg)
@@ -172,12 +170,12 @@ export class TRange extends TBase<null> {
 
     if (start <= end) {
       for (let i = start; i <= end; i++) {
-        acc = internalCallback(acc, i)
+        acc = fn(acc, i)
       }
     }
     else {
       for (let i = start; i >= end; i--) {
-        acc = internalCallback(acc, i)
+        acc = fn(acc, i)
       }
     }
     return acc

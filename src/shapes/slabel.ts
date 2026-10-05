@@ -26,8 +26,9 @@ export class SLabel extends SBase {
     // Track explicit fill in hidden (survives field initialization)
     this.hidden._hasExplicitFill = 'fill' in args
     super.setupParams(args)
-    if (this.params.font)
-      this.params.font = new TFont(this.params.font)
+    const font = this.params.font
+    if (font && !(font instanceof TFont))
+      this.params.font = new TFont(font)
 
     // What auto coloring starts from, so that coloring again (when the parent's
     // fill changes) gives the same result as coloring a new label would
@@ -38,8 +39,8 @@ export class SLabel extends SBase {
   override applyAutoColoring() {
     if (this.hidden._hasExplicitFill || !this.params._parentFill) return
 
-    this.params.fill = this.hidden._defaultFill
-    if (this.hidden._defaultFillSlot)
+    this.params.fill = this.hidden._defaultFill as string | undefined
+    if (typeof this.hidden._defaultFillSlot === `string`)
       this.params._fill_slot = this.hidden._defaultFillSlot
     else
       delete this.params._fill_slot
@@ -75,7 +76,7 @@ export class SLabel extends SBase {
   // directly or it measures every font-spec label at the default size. The spec
   // takes precedence over a separate font_size, matching injectIntoAttrs.
   private effectiveFont() {
-    const font = this.params.font
+    const font = this.font
     return {
       size:       parseFontSize(font?.size ?? this.params.font_size) ?? 0.14,
       family:     font?.family ?? this.params.font_family,
@@ -155,16 +156,19 @@ export class SLabel extends SBase {
     }
   }
 
-  get text() { return this.params.text }
-  set text(val) { this.params.text = val }
+  get text(): string  { return this.params.text ?? `` }
+  set text(val: string) { this.params.text = val }
   handle_attr_text() { return new TString(this.text) }
 
-  get font() { return this.params.font }
-  handle_attr_font() { return new TFont(this.font) }
+  get font(): TFont | undefined {
+    const font = this.params.font
+    return font instanceof TFont ? font : undefined
+  }
+  handle_attr_font() { return this.font ?? new TFont({}) }
 
   setAtAttr(name: string, value: TA) {
     if (name === `text`) {
-      this.text = value.toNative()
+      this.text = value instanceof TString ? value.value : String(value.toNative())
       this.calculateDimensions()
       return this
     }

@@ -21,8 +21,8 @@ export class SEllipse extends SBase {
 
   get width()  { return 2 * this.rx }
   get height() { return 2 * this.ry }
-  get rx()     { return this.params.rx }
-  get ry()     { return this.params.ry }
+  get rx(): number { return this.param(`rx`) }
+  get ry(): number { return this.param(`ry`) }
 
   getCardinalOffsetsFromAnchor(cardinal: Cardinals) {
     const factors: Record<Cardinals, [number, number]> = {

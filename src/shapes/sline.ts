@@ -1,5 +1,5 @@
 import { LineLike } from "./line_like.js"
-import { TColor, TNumber, TPosition } from "../types.js"
+import type * as AST from "../ast.js"
 import { Cardinals, CardinalFactorsFromCenter, UnitVector, XY } from "../position.js"
   
 export class SLine extends LineLike {
@@ -14,26 +14,9 @@ export class SLine extends LineLike {
   }
 
 
-  handle_attr_thickness() { return new TNumber(this.thickness) }
-  handle_attr_length()    { return new TNumber(this.length)    }
-  handle_attr_width()     { return new TNumber(this.width)     }
-  handle_attr_height()    { return new TNumber(this.height)    }
-  handle_attr_stroke()    { return new TColor(this.stroke)     }
-  handle_attr_start()     { return new TPosition(this.start)   }
-  handle_attr_end()       { return new TPosition(this.end)     }
-
-  // and these are filled in with actual coordinates by the geometry
-  get start()             { return this.params.start           }
-  set start(val)          { this.params.start = val            }
-  get end()               { return this.params.end             }
-  set end(val)            { this.params.end = val              }
-
-  get thickness()         { return this.params.stroke_width    }
-  get stroke()            { return this.params.stroke          }
   get width()             { return Math.abs(this.start.x - this.end.x) }
   get height()            { return Math.abs(this.start.y - this.end.y) }
   get default_length()    { return this.params.length ?? 1              }
-  get line_path()         { return this.params.line_path               }
   get length()            {
     return Math.hypot(
       this.start.x - this.end.x, 
@@ -42,7 +25,8 @@ export class SLine extends LineLike {
   }
 
 
-  get _directional()      { return this.hidden._directional     }
+  // A line given by directions (line right 2 up 1), as a syntax tree
+  get _directional()      { return this.hidden._directional as AST.DirectionalWaypoint | undefined }
 
   getEndAndNewDirection(startAsXY: XY, direction: UnitVector) {
     // Handle directional syntax: line right 2, line right 2 up 1

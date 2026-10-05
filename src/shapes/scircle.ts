@@ -33,9 +33,9 @@ export class SCircle extends SBase {
   get height() { return 2 * this.r }
   get ht() { return 2 * this.r }
 
-  get r()  { return this.params.r  }
-  get rad()  { return this.params.r  }
-  get radius()  { return this.params.r  }
+  get r(): number      { return this.param(`r`) }
+  get rad(): number    { return this.r }
+  get radius(): number { return this.r }
 
   // Turning a circle does not change the space it takes up.
   override extent() {

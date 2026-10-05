@@ -10,8 +10,8 @@ export class SBox extends SBase {
   handle_attr_rad()    { return new TNumber(this.rx) }
   handle_attr_radius() { return new TNumber(this.rx) }
 
-  get rx()             { return this.params.rx       }
-  get ry()             { return this.params.ry       }
+  get rx(): number     { return this.param(`rx`) }
+  get ry(): number     { return this.param(`ry`) }
 
   // If only rx or ry is explicitly set, sync the other to match
   setupParams(args: ShapeArgs) {

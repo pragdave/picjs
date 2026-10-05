@@ -1,16 +1,15 @@
 import { LineLike, PathPoint } from "./line_like.js"
-import { TColor, TNumber, TPosition } from "../types.js"
+import { TNumber } from "../types.js"
 import { Cardinals, CardinalFactorsFromCenter, XY } from "../position.js"
+import type * as AST from "../ast.js"
 
 export class SPolyline extends LineLike {
   override shapeName = "SPolyline"
 
   // The `then` clauses, as syntax trees evaluated by the geometry
-  get _waypoints()  { return this.hidden._waypoints }  // Array of AST nodes
+  get _waypoints()  { return this.hidden._waypoints as AST.Node[] | undefined }
 
   // Resolved coordinates (filled by geometry)
-  get start(): XY        { return this.params.start }
-  set start(val: XY)     { this.params.start = val }
   get waypoints(): XY[]  { return this.params.waypoints || [] }
   set waypoints(val: XY[]) { this.params.waypoints = val }
 
@@ -18,10 +17,7 @@ export class SPolyline extends LineLike {
   get end(): XY     { const wp = this.waypoints; return wp.length > 0 ? wp[wp.length - 1] : this.start }
   set end(_val: XY) { /* computed from waypoints */ }
 
-  get closed(): boolean { return this.params.closed || this.hidden._closed || false }
-  get thickness()       { return this.params.stroke_width }
-  get stroke()          { return this.params.stroke }
-  get line_path()       { return this.params.line_path }
+  get closed(): boolean { return this.params.closed === true || this.hidden._closed === true }
 
   // All points including start
   get allPoints(): XY[] { return [this.start, ...this.waypoints] }
@@ -48,13 +44,6 @@ export class SPolyline extends LineLike {
     return total
   }
 
-  handle_attr_thickness() { return new TNumber(this.thickness) }
-  handle_attr_length()    { return new TNumber(this.length) }
-  handle_attr_width()     { return new TNumber(this.width) }
-  handle_attr_height()    { return new TNumber(this.height) }
-  handle_attr_stroke()    { return new TColor(this.stroke) }
-  handle_attr_start()     { return new TPosition(this.start) }
-  handle_attr_end()       { return new TPosition(this.end) }
   handle_attr_closed()    { return new TNumber(this.closed ? 1 : 0) }
 
   getCardinalOffsetsFromAnchor(cardinal: Cardinals) {

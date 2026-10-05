@@ -11,7 +11,7 @@ interface FontAttributes  {
   "line_height":  string
 }
 
-type OptionalFontAttributes = {
+export type OptionalFontAttributes = {
   [Property in keyof FontAttributes]+?: FontAttributes[Property]
 }
 
