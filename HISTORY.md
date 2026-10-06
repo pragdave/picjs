@@ -1,6 +1,6 @@
 # PicJS History
 
-## Unreleased
+## 0.4.0
 
 * Refer to earlier shapes by when they were drawn: `last box`, `2nd circle`, `second last line`,
   `first Shape`. They work anywhere a shape does, including constraints, `move`, `set` and
@@ -30,6 +30,28 @@
   one of its points (`move b.fill` was accepted, and broke the animation), as errors that say what
   is wrong; an unknown attribute on a shape names the shape briefly ("for a Box")
 * `??` now shows shapes, colors and blocks as readable source
+* An arc's `turn` can be an angle: `Arc turn 45`, `Arc from (0,0) to (2,0) turn 270`. Positive
+  angles turn clockwise, as `Face`'s do (`turn 90` is `cw`, `turn -90` is `ccw`); an angle must
+  be between -360 and 360, and not 0. A bare arc turns the drawing direction by its angle.
+  Previously the angle was accepted and ignored
+* Fix arcs being cut off at the edge of the drawing: the canvas allowed for the box around an
+  arc's ends, not the curve, which bulges past them
+* Fix a line or arc drawn first, followed by a shape (`Line` then `Box`), being drawn with no length
+* Fix a shape's arguments running on into the lines after it: `a = Box` followed by lines
+  `b = Box` and `xs = 100` was read as one box sized `(b = Box) x (s = 100)`, and an unquoted font
+  family took the attributes after it (`font 24pt Georgia fill ~red` lost the fill). An unquoted
+  family now ends at the end of the line or at an attribute; quote it if anything else follows
+* A label's text can be a number, a position or a list (`Box (n)`), shown as it would be in a
+  string; this crashed before
+* Putting a shape in a string (`"a" + b`, `"#{b}"`) is an error, rather than a dump of its
+  internals; `?? b` still shows them
+* Error messages name values as you'd write them: strings in quotes, positions as `(1, 2)`.
+  Comparing a boolean or a color with the wrong kind of value reports where it happened
+* `each` is no longer accepted as a misspelling of the `ease` animation parameter
+* Drawings no longer carry attributes that aren't SVG (`fit="true"`, a circle's `x` and `y`, a
+  line's `x`, `y` and `rx`)
+* The playground's inspector names values by type (`Position`, `Box`), in the built library too
+* Docs: a new Grammar page, the language's annotated EBNF, generated from the parser's grammar
 
 ## 0.3.0
 
