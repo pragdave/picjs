@@ -1,6 +1,6 @@
 # PicJS History
 
-## Unreleased
+## 0.5.0
 
 * Give a shape attributes for scripts and CSS: `attr data-tip "Handles requests"`, and `id api` for
   its id. They go on the shape's outermost SVG element, so a page can find a shape to script or style
