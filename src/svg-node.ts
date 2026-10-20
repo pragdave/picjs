@@ -115,7 +115,7 @@ function validateTag(tag: string): string {
   return tag
 }
 
-function validateAttrName(name: string): string {
+export function validateAttrName(name: string): string {
   if (!SVG_ATTR_PATTERN.test(name)) {
     throw new Error(`Invalid SVG attribute name: "${name}"`)
   }

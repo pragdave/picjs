@@ -88,6 +88,8 @@ function buildCompoundAssignment(lvalue, operator, rvalue) {
     for (const attr of attrs) {
       if (attr.label) {
         labels.push(attr.label)
+      } else if (attr._elementAttrs) {
+        appendElementAttrs(result, attr)
       } else {
         Object.assign(result, attr)
       }
@@ -100,6 +102,10 @@ function buildCompoundAssignment(lvalue, operator, rvalue) {
     return result
   }
 
+  function appendElementAttrs(result, attr) {
+    result._elementAttrs = [ ...(result._elementAttrs ?? []), ...attr._elementAttrs ]
+  }
+
   // Like mergeAttributes but collects _lineLabel entries into a labels array
   function mergeLineAttributes(attrs) {
     const labels = []
@@ -107,6 +113,8 @@ function buildCompoundAssignment(lvalue, operator, rvalue) {
     for (const attr of attrs) {
       if (attr._lineLabel) {
         labels.push(attr._lineLabel)
+      } else if (attr._elementAttrs) {
+        appendElementAttrs(result, attr)
       } else {
         Object.assign(result, attr)
       }
@@ -247,6 +255,7 @@ false  = "false"  ! IdentifierPart { return text() }
 about        = "about"                    ! IdentifierPart { return text() }
 above        = "above"                    ! IdentifierPart { return text() }
 align        = "align"                    ! IdentifierPart { return text() }
+attr         = "attr"                     ! IdentifierPart { return text() }
 at           = "at"                       ! IdentifierPart { return text() }
 behind       = "behind"                   ! IdentifierPart { return text() }
 below        = "below"                    ! IdentifierPart { return text() }
@@ -268,6 +277,7 @@ font_variant = "font_variant"             ! IdentifierPart { return text() }
 font_weight  = "font_weight"              ! IdentifierPart { return text() }
 from         = "from"                     ! IdentifierPart { return text() }
 height       = ( "height" / "ht" )        ! IdentifierPart { return "height" }
+id           = "id"                       ! IdentifierPart { return text() }
 inside       = "inside"                   ! IdentifierPart { return text() }
 length       = ( "length" / "len" )       ! IdentifierPart { return "length" }
 line_height  = "line_height"              ! IdentifierPart { return text() }
@@ -1652,6 +1662,7 @@ SECommon
   / SEBehind
   / SESame
   / SEClass
+  / SEElementAttr
 
 // IN a perfect example of features creeping into a parser that belong elsewhere,
 // I present "the label argument". The idea is that most shapes can have
@@ -1901,6 +1912,22 @@ SESame
 SEClass
   = "." cls:Identifier
     { return { _class: text() }}
+
+// Attributes copied onto the shape's outermost SVG element, for scripts and
+// CSS. A bare value is taken as a single-word string, not an expression.
+SEElementAttr
+  = attr __ name:ElementAttrName __ value:ElementAttrValue
+    { return { _elementAttrs: [ { name, value } ] } }
+  / id __ value:ElementAttrValue
+    { return { _elementAttrs: [ { name: ast(string("id")), value } ] } }
+
+ElementAttrName
+  = [a-zA-Z] [a-zA-Z0-9-]* { return ast(string(text())) }
+  / String
+
+ElementAttrValue
+  = [a-zA-Z0-9_.-]+ { return ast(string(text())) }
+  / String
 
 SEText
   = align __ cardinal:Cardinal

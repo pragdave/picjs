@@ -16,6 +16,7 @@ Every attribute, what type of value it takes, and what it does.
 |-----------|-------|-------------|
 | `align` | cardinal (`.n`, `.w`, `.c`, etc.) | Text alignment within a label |
 | `at` | position | Place shape at a specific position |
+| `attr` | name value | Set an attribute on the shape's SVG element (see [Scripting and styling](/integrating/#scripting-and-styling-a-diagram)) |
 | `behind` | shape reference | Render this shape behind the referenced shape |
 | `close` | — (flag) | Close a polyline into a polygon (polyline only) |
 | `dashed` | — (flag) | Dashed stroke line style |
@@ -32,6 +33,7 @@ Every attribute, what type of value it takes, and what it does.
 | `font_weight` | keyword/number | Font weight (`bold`, `lighter`, `100`–`900`) |
 | `from` | position | Line/arc start point |
 | `height` / `ht` | number | Shape height |
+| `id` | value | The shape's SVG element id (`id api` is `attr id api`) |
 | `length` / `len` | number | Line length |
 | `line_height` | number | Line spacing for multi-line labels |
 | `line_end` | `>` / `o` / `\|` | End marker on a line |
@@ -140,6 +142,7 @@ Theme-variable names (like `BoxFill0`) resolve to specific colors at runtime.
 | `fit` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `same` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `behind` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `attr` / `id` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `.<class>` | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ |
 
 **Notes:**

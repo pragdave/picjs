@@ -32,6 +32,7 @@ import { isKnownAttribute, acceptedAttributesFor } from "./shapes/attributes.js"
 import { RegenerateSource, ordinal } from "./regenerate_source.js"
 import type { ShapeParams } from "./shapes/_base.js"
 import { numberArgument } from "./types/arguments.js"
+import { validateAttrName } from "./svg-node.js"
 
 
 const BinOps: { [op: string]: BinaryOperatorMethod } = {
@@ -375,9 +376,11 @@ export class Interpreter extends Visitor{
     // 8. Evaluate group attributes (opacity, etc.)
     const groupArgs: ShapeParams = {}
     const behindAST = node.args?._behind
+    const elementAttrsAST = node.args?._elementAttrs
     if (node.args) {
       const argsForEval = { ...node.args }
       delete argsForEval._behind
+      delete argsForEval._elementAttrs
       Object.assign(groupArgs, this.visit_object(argsForEval))
     }
 
@@ -388,6 +391,7 @@ export class Interpreter extends Visitor{
       groupArgs,
       node.withConstraint,
     ) as SGroup
+    this.setElementAttrs(group, elementAttrsAST)
 
     // 10. Register group children and compute bounding box
     for (const child of newShapes) {
@@ -635,7 +639,10 @@ export class Interpreter extends Visitor{
     if (this.dispatcher.isReEvaluating && memoized)
       return memoized
 
-    const { label, _shapeLabels: shapeLabels, _labels: lineLabels, _behind: behindAST, _same: hasSame } = node.args
+    const {
+      label, _shapeLabels: shapeLabels, _labels: lineLabels, _behind: behindAST, _same: hasSame,
+      _elementAttrs: elementAttrsAST,
+    } = node.args
 
     // Work on a copy to avoid mutating the shared AST (breaks when functions
     // call the same shape node multiple times).
@@ -645,6 +652,7 @@ export class Interpreter extends Visitor{
     delete argsForEval._labels
     delete argsForEval._behind
     delete argsForEval._same
+    delete argsForEval._elementAttrs
 
     let evaluatedArgs = this.visit_object(argsForEval)
 
@@ -661,6 +669,7 @@ export class Interpreter extends Visitor{
       evaluatedArgs,
       node.withConstraint,   // defer evaluation
     )
+    this.setElementAttrs(shape, elementAttrsAST)
 
     if (behindAST) {
       const target = this.accept(behindAST)
@@ -706,6 +715,22 @@ export class Interpreter extends Visitor{
 
     this.lastShapeMadeBy.set(node, shape)
     return shape
+  }
+
+  private setElementAttrs(shape: Shapes.SBase, attrs: AST.ElementAttr[] | undefined) {
+    for (const attr of attrs ?? []) {
+      const name = String(this.accept(attr.name))
+      const value = String(this.accept(attr.value))
+      checkElementAttrName(name)
+      if (name === `id`) this.checkIdIsUnused(shape, value)
+      shape.elementAttrs[name] = value
+    }
+  }
+
+  private checkIdIsUnused(shape: Shapes.SBase, id: string) {
+    const other = this.dispatcher.shapes().find(s => s !== shape && s.elementAttrs.id === id)
+    if (other)
+      throw new RTE(`The id "${id}" is already used by a ${other.typeName}: ids must be unique`)
   }
 
   // `fit` sizes a shape to its labels, shrinking as well as growing. The size
@@ -1130,4 +1155,15 @@ function shapeReferenceError(node: AST.ShapeReference, count: number) {
     ? `no ${plural(2, noun).slice(2)} have been drawn so far`
     : `only ${plural(count, noun)} ${count === 1 ? `has` : `have`} been drawn so far`
   return `there is no ${ref}: ${drawn}`
+}
+
+function checkElementAttrName(name: string) {
+  try {
+    validateAttrName(name)
+  } catch (e) {
+    throw new RTE((e as Error).message)
+  }
+  // data-jp-id is how the editor maps a clicked element back to its shape
+  if (name.toLowerCase().startsWith(`data-jp-`))
+    throw new RTE(`"${name}" is reserved: picjs uses data-jp- attributes itself`)
 }

@@ -93,6 +93,34 @@ at `.github/workflows/render-diagrams.yml`. It builds picjs and renders the
 diagrams whenever `README.md` changes on main, then commits the result — so you
 can edit the README anywhere, including on GitHub itself.
 
+## Scripting and styling a diagram
+
+`attr name value` sets an attribute on a shape's SVG element, so a page's
+scripts and CSS can find it. `id value` is short for `attr id value`.
+
+``` picjs code
+Box "API" id api attr class service attr data-tip "Handles every request"
+```
+
+```js
+document.getElementById(`api`).addEventListener(`click`, e =>
+  showTip(e.currentTarget.dataset.tip))
+```
+
+* The name is a bare attribute name (`data-tip`, `aria-label`) or a string,
+  which can be interpolated: `attr "data-#{key}" on`.
+* The value is a single word (`api`, `1.5`, `on-call`) or a string:
+  `attr "aria-label" "Box #{i}"`. A bare word is never a variable; write
+  `"#{x}"` to use one.
+* The attributes go on the shape's outermost element: the `<g>` that wraps a
+  shape and its label, or the shape's own element when it has none. A label's
+  shape and text get `-s` and `-t` added to the id (`api-s`, `api-t`).
+* A `class` is added to the classes picjs puts on the element for palette
+  colors.
+* Ids must be unique, and an `id` replaces the one picjs generates.
+* Event handlers (`onclick` …), `href`, and picjs's own `data-jp-` attributes
+  are not allowed.
+
 ## For an AI assistant
 
 The `skills/` directory holds two skills files: one for the language, one for

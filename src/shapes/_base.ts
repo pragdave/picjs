@@ -156,6 +156,9 @@ export class SBase extends TBase<null> {
   // Draw this shape before `behind` (so it appears behind it in SVG)
   behind?: SBase
 
+  // Set on the shape's outermost SVG element (`attr name value`, `id value`)
+  elementAttrs: Record<string, string> = {}
+
   // Relative positioning within a parent group (see sgroup.ts)
   parentGroup?: SGroup
   relativeX?: number      // X offset from parent group anchor

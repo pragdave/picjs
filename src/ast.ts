@@ -311,7 +311,7 @@ export interface LineLabel {
 // A shape's arguments: an expression for each attribute, plus the entries the
 // parser adds for labels, a line's path, and other clauses
 export interface ShapeArgs {
-  [attribute: string]: Node | Node[] | LineLabel[] | boolean | string | undefined
+  [attribute: string]: Node | Node[] | LineLabel[] | ElementAttr[] | boolean | string | undefined
   label?: Shape,                // one label
   _shapeLabels?: Shape[],       // several labels
   _labels?: LineLabel[],        // labels along a line
@@ -323,6 +323,12 @@ export interface ShapeArgs {
   _behind?: Node,
   _same?: boolean,
   _class?: string,              // .h1
+  _elementAttrs?: ElementAttr[], // attr name value, id value
+}
+
+export interface ElementAttr {
+  name: Node,
+  value: Node,
 }
 
 export interface Shape extends Base {

@@ -86,9 +86,7 @@ export class Renderer {
       }
       else if (sid in this.renderers) {
         const renderer = this.renderers[sid].rerender(shape.requiredPosition(), params)
-        if (this.idGenerator) {
-          renderer.node.attrs.id = this.idGenerator.next()
-        }
+        this.applyElementAttrs(renderer.node, shape)
         elements.push(renderer.node)
       }
       else {
@@ -96,9 +94,7 @@ export class Renderer {
         if (specificRenderer) {
           const renderer = new specificRenderer(shape.requiredPosition(), params)
           renderer.node.attrs["data-jp-id"] = sid
-          if (this.idGenerator) {
-            renderer.node.attrs.id = this.idGenerator.next()
-          }
+          this.applyElementAttrs(renderer.node, shape)
           this.renderers[sid] = renderer
           elements.push(renderer.node)
         }
@@ -106,6 +102,23 @@ export class Renderer {
     }
 
     return elements
+  }
+
+  // A shape's own id replaces the generated one, but the generator still
+  // advances so that the ids of the shapes after it don't change.
+  private idFor(shape: Shape.SBase): string | undefined {
+    const generated = this.idGenerator?.next()
+    return shape.elementAttrs.id ?? generated
+  }
+
+  // The outer element of a composite shape is reused between renders, so
+  // classes are merged rather than appended.
+  private applyElementAttrs(node: SvgNode, shape: Shape.SBase, id = this.idFor(shape)) {
+    if (id !== undefined) node.attrs.id = id
+    for (const [name, value] of Object.entries(shape.elementAttrs)) {
+      if (name === `id`) continue
+      node.attrs[name] = name === `class` ? mergeClasses(node.attrs.class, value) : value
+    }
   }
 
   private renderParentWithChildren(shape: Shape.SBase): SvgNode {
@@ -120,12 +133,11 @@ export class Renderer {
       groupTransform = `rotate(${rotation}, ${center.x}, ${center.y})`
     }
 
-    // Generate main ID for the group if IdGenerator is present
-    const mainId = this.idGenerator?.next()
+    const mainId = this.idFor(shape)
 
     // Render parent without rotation
     const parentParams = { ...shape.params, rotation: 0 }
-    const parentNode = this.renderSingleShape(shape, position ? { ...position, rotation: 0 } : position, parentParams, mainId ? this.idGenerator!.sub(mainId, "s") : undefined)
+    const parentNode = this.renderSingleShape(shape, position ? { ...position, rotation: 0 } : position, parentParams, mainId ? subId(mainId, "s") : undefined)
 
     // Render children — strip rotation only when the parent's rotation is
     // lifted to the group.  Line labels carry their own rotation (from the
@@ -133,7 +145,7 @@ export class Renderer {
     const childNodes: SvgNode[] = []
     for (const child of shape.children) {
       const childPos = this.localPosition(child)
-      const childId = mainId ? this.idGenerator!.sub(mainId, "t") : undefined
+      const childId = mainId ? subId(mainId, "t") : undefined
       if (rotation) {
         const childParams = { ...child.params, rotation: 0 }
         childNodes.push(this.renderSingleShape(child, childPos ? { ...childPos, rotation: 0 } : childPos, childParams, childId))
@@ -154,9 +166,7 @@ export class Renderer {
     } else {
       delete groupNode.attrs.transform
     }
-    if (mainId) {
-      groupNode.attrs.id = mainId
-    }
+    this.applyElementAttrs(groupNode, shape, mainId)
 
     // A shape's opacity applies to its label too, so it goes on the group
     if (parentNode.attrs.opacity !== undefined) {
@@ -215,10 +225,7 @@ export class Renderer {
       this.renderers[sid] = groupRenderer
     }
 
-    // Assign ID if generator is present
-    if (this.idGenerator) {
-      groupRenderer.node.attrs.id = this.idGenerator.next()
-    }
+    this.applyElementAttrs(groupRenderer.node, group)
 
     // The background goes in first, so it sits behind everything including any
     // child reordered by `behind`. Its geometry is the group's own bounds: the
@@ -304,9 +311,7 @@ export class Renderer {
 
     if (sid in this.renderers) {
       const node = this.renderers[sid].rerender(position, params).node
-      if (this.idGenerator) {
-        node.attrs.id = this.idGenerator.next()
-      }
+      this.applyElementAttrs(node, shape)
       return node
     }
     else {
@@ -314,9 +319,7 @@ export class Renderer {
       if (specificRenderer) {
         const renderer = new specificRenderer(position, params)
         renderer.node.attrs["data-jp-id"] = sid
-        if (this.idGenerator) {
-          renderer.node.attrs.id = this.idGenerator.next()
-        }
+        this.applyElementAttrs(renderer.node, shape)
         this.renderers[sid] = renderer
         return renderer.node
       }
@@ -339,4 +342,13 @@ export class Renderer {
     }
     return pos
   }
+}
+
+function subId(parentId: string, suffix: string): string {
+  return `${parentId}-${suffix}`
+}
+
+function mergeClasses(existing: string | number | undefined, added: string): string {
+  const classes = new Set(`${existing ?? ``} ${added}`.split(/\s+/).filter(Boolean))
+  return [...classes].join(` `)
 }

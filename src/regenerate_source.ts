@@ -128,7 +128,7 @@ export class RegenerateSource extends Visitor {
   VisitShape(node: AST.Shape) {
     const {
       label, _shapeLabels, _labels, _start, _end, _waypoints, _closed, _rotationCenter,
-      _behind, _same, _class, line_start, line_end, line_path, ...attributes
+      _behind, _same, _class, _elementAttrs, line_start, line_end, line_path, ...attributes
     } = node.args
 
     const labels = [ ...(label ? [label] : []), ...(_shapeLabels ?? []) ]
@@ -159,6 +159,7 @@ export class RegenerateSource extends Visitor {
       _rotationCenter && `about ${this.accept(_rotationCenter)}`,
       _behind && `behind ${this.accept(_behind)}`,
       _same && `same`,
+      ...(_elementAttrs ?? []).map(a => `attr ${this.accept(a.name)} ${this.accept(a.value)}`),
       constraint && `with .${constraint.cardinal} at ${this.accept(constraint.place)}`,
     ].filter(Boolean).join(` `)
   }

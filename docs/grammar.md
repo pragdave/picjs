@@ -721,11 +721,31 @@ SECommon        = SELabel
                 | SEFit
                 | SEBehind
                 | SESame
-                | SEClass ;
+                | SEClass
+                | SEElementAttr ;
 ```
 
 ```ebnf
 SEBehind        = 'behind' __ NonShapeExpression ;
+```
+
+Attributes copied onto the shape's outermost SVG element, for scripts and CSS. A bare value is taken as a single-word string, not an expression.
+
+```ebnf
+SEElementAttr   = 'attr' __ ElementAttrName __ ElementAttrValue
+                | 'id' __ ElementAttrValue ;
+```
+
+```ebnf
+ElementAttrName
+                = [a-zA-Z] [a-zA-Z0-9\-]*
+                | String ;
+```
+
+```ebnf
+ElementAttrValue
+                = [a-zA-Z0-9_.\-]+
+                | String ;
 ```
 
 ```ebnf
@@ -1368,6 +1388,7 @@ one spelling, any of them may be used.
 | Arc | `Arc`, `arc` |
 | Aside | `Aside` |
 | at | `at` |
+| attr | `attr` |
 | behind | `behind` |
 | below | `below` |
 | Box | `Box`, `box` |
@@ -1398,6 +1419,7 @@ one spelling, any of them may be used.
 | Goto | `Goto` |
 | Group | `Group` |
 | height | `height`, `ht` |
+| id | `id` |
 | if | `if` |
 | inside | `inside` |
 | Label | `Label` |

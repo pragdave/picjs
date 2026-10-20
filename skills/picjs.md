@@ -222,6 +222,18 @@ Box rotation 45                    // rotated 45 degrees
 Box rotation 45 about (0, 0)      // rotated about a point
 ```
 
+## Attributes for scripts and CSS
+
+```
+Box "API" id api attr class service attr data-tip "Handles requests"
+Box attr "aria-label" "Step #{i}"  // quoted names and values interpolate
+```
+
+`attr name value` sets an attribute on the shape's outermost SVG element (the
+`<g>` around a labelled shape); `id value` is short for `attr id value`. A bare
+value is a single word, not a variable. Ids must be unique; event handlers,
+`href` and `data-jp-*` are rejected.
+
 ## Groups
 
 Groups collect shapes into a single positionable unit:
